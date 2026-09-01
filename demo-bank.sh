@@ -129,7 +129,7 @@ git --version
 # ==================================================
 
 echo
-echo "5. BAIXANDO MARTIAN BANK"
+echo "5. BAIXANDO DEMO BANK"
 echo "=================================================="
 
 if [ ! -d "$BASE/.git" ]; then
@@ -895,10 +895,7 @@ echo "21. URL DA MARTIAN BANK"
 echo "=================================================="
 
 
-IP=$(curl -s \
-    --max-time 5 \
-    http://169.254.169.254/latest/meta-data/public-ipv4 \
-    || true)
+IP=$(curl -s checkip.amazonaws.com) || true)
 
 
 if [ -n "$IP" ]; then
