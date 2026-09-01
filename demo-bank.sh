@@ -1,4 +1,4 @@
-cat > ~/instalar_martian_bank.sh <<'EOF'
+cat > ~/instalar_bank.sh <<'EOF'
 #!/bin/bash
 
 set -e
@@ -1061,7 +1061,7 @@ echo "=================================================="
 
 EOF
 
-chmod +x ~/instalar_martian_bank.sh
+chmod +x ~/instalar_bank.sh
 
 echo
 echo "=================================================="
@@ -1070,5 +1070,5 @@ echo "=================================================="
 echo
 echo "Execute:"
 echo
-echo "~/instalar_martian_bank.sh"
+echo "~/instalar_bank.sh"
 echo
