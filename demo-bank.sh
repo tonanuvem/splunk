@@ -1,4 +1,3 @@
-```bash
 cat > ~/instalar_martian_bank.sh <<'EOF'
 #!/bin/bash
 
@@ -646,4 +645,3 @@ echo "Execute:"
 echo
 echo "./instalar_martian_bank.sh"
 echo
-```
