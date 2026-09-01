@@ -1,4 +1,4 @@
-cat > ~/parar_martian_bank.sh <<'EOF'
+cat > ~/parar_bank.sh <<'EOF'
 #!/bin/bash
 
 set +e
@@ -274,7 +274,7 @@ echo "💾 Dados do MongoDB foram PRESERVADOS."
 echo
 echo "Para iniciar novamente:"
 echo
-echo "~/instalar_martian_bank.sh"
+echo "~/instalar_bank.sh"
 
 
 echo
@@ -286,4 +286,7 @@ chmod +x ~/parar_martian_bank.sh
 
 echo
 echo "✅ Script atualizado:"
-echo "~/parar_martian_bank.sh"
+echo "~/parar_bank.sh"
+echo
+echo "Executando script"
+~/parar_bank.sh
