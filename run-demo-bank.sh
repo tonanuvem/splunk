@@ -1069,3 +1069,5 @@ echo "Execute:"
 echo
 echo "~/instalar_bank.sh"
 echo
+echo "Executando script"
+~/instalar_bank.sh
