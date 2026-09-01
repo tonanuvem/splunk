@@ -5,10 +5,15 @@ set -e
 
 echo "=================================================="
 echo " MARTIAN BANK DEMO + SPLUNK"
+echo " EC2 + CORS + USUARIO DE TESTE"
 echo "=================================================="
 
 BASE="$HOME/martian-bank-demo"
 
+
+# ==================================================
+# 1. DOCKER
+# ==================================================
 
 echo
 echo "1. VERIFICANDO DOCKER"
@@ -19,20 +24,24 @@ if ! command -v docker >/dev/null 2>&1; then
     exit 1
 fi
 
-echo "✅ Docker encontrado:"
+echo "✅ Docker:"
 docker --version
 
 
+# ==================================================
+# 2. NODE.JS
+# ==================================================
+
 echo
-echo "2. INSTALANDO NODE.JS SE NECESSÁRIO"
+echo "2. VERIFICANDO NODE.JS"
 echo "=================================================="
 
 if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
 
-    echo "✅ Node.js já instalado:"
+    echo "✅ Node.js:"
     node --version
 
-    echo "✅ npm já instalado:"
+    echo "✅ npm:"
     npm --version
 
 else
@@ -56,19 +65,25 @@ else
         sudo apt-get install -y nodejs
 
     else
+
         echo "❌ Sistema operacional não suportado."
         exit 1
+
     fi
 
     echo
-    echo "Node instalado:"
+    echo "Node.js:"
     node --version
 
-    echo "npm instalado:"
+    echo "npm:"
     npm --version
 
 fi
 
+
+# ==================================================
+# 3. PYTHON
+# ==================================================
 
 echo
 echo "3. VERIFICANDO PYTHON"
@@ -83,8 +98,38 @@ echo "✅ Python:"
 python3 --version
 
 
+# ==================================================
+# 4. GIT
+# ==================================================
+
 echo
-echo "4. BAIXANDO MARTIAN BANK"
+echo "4. VERIFICANDO GIT"
+echo "=================================================="
+
+if ! command -v git >/dev/null 2>&1; then
+
+    echo "🚀 Instalando Git..."
+
+    if command -v dnf >/dev/null 2>&1; then
+        sudo dnf install -y git
+    elif command -v yum >/dev/null 2>&1; then
+        sudo yum install -y git
+    elif command -v apt-get >/dev/null 2>&1; then
+        sudo apt-get install -y git
+    fi
+
+fi
+
+echo "✅ Git:"
+git --version
+
+
+# ==================================================
+# 5. MARTIAN BANK
+# ==================================================
+
+echo
+echo "5. BAIXANDO MARTIAN BANK"
 echo "=================================================="
 
 if [ ! -d "$BASE/.git" ]; then
@@ -109,27 +154,44 @@ fi
 cd "$BASE"
 
 
+# ==================================================
+# 6. FUNÇÃO DE BACKUP
+# ==================================================
+
+backup_file() {
+
+    local FILE="$1"
+
+    if [ -f "$FILE" ] && [ ! -f "$FILE.ec2.original" ]; then
+
+        echo "📦 Backup:"
+        echo "$FILE"
+
+        cp "$FILE" "$FILE.ec2.original"
+
+    fi
+
+}
+
+
+# ==================================================
+# 7. CONFIGURANDO API URLS DA UI
+# ==================================================
+
 echo
-echo "5. CONFIGURANDO UI PARA EC2"
+echo "7. CONFIGURANDO URLS DA UI PARA EC2"
 echo "=================================================="
 
 API_URLS="$BASE/ui/src/slices/apiUrls.js"
 
+backup_file "$API_URLS"
+
 cat > "$API_URLS" <<'JS'
 /*
- * URLs da API para execução em EC2.
+ * MARTIAN BANK - EC2
  *
- * A UI usa o mesmo hostname/IP utilizado pelo navegador.
- *
- * Exemplo:
- *
- * UI:
- *   http://18.215.161.178:3000
- *
- * APIs:
- *   http://18.215.161.178:8000
- *   http://18.215.161.178:8001
- *   http://18.215.161.178:5000
+ * A UI usa automaticamente o hostname/IP
+ * utilizado pelo navegador.
  */
 
 const HOST = window.location.hostname;
@@ -161,18 +223,20 @@ const ApiUrls = {
 export default ApiUrls;
 JS
 
-echo "✅ apiUrls.js ajustado para EC2."
+echo "✅ apiUrls.js configurado."
+
+
+# ==================================================
+# 8. VITE
+# ==================================================
 
 echo
-echo "URLs configuradas:"
-cat "$API_URLS"
-
-
-echo
-echo "6. CONFIGURANDO VITE PARA ACESSO EXTERNO"
+echo "8. CONFIGURANDO VITE"
 echo "=================================================="
 
 VITE_CONFIG="$BASE/ui/vite.config.js"
+
+backup_file "$VITE_CONFIG"
 
 cat > "$VITE_CONFIG" <<'JS'
 import { defineConfig } from 'vite'
@@ -194,51 +258,68 @@ export default defineConfig({
 })
 JS
 
-echo "✅ Vite configurado para 0.0.0.0:3000."
+echo "✅ Vite configurado:"
+echo "   0.0.0.0:3000"
 
+
+# ==================================================
+# 9. CORS FLASK
+# ==================================================
 
 echo
-echo "7. CONFIGURANDO CORS DOS SERVIÇOS FLASK"
+echo "9. CONFIGURANDO CORS"
 echo "=================================================="
 
-for SERVICE_FILE in \
-    "$BASE/accounts/accounts.py" \
-    "$BASE/transactions/transaction.py" \
-    "$BASE/loan/loan.py"
-do
 
-    if [ -f "$SERVICE_FILE" ]; then
+configure_flask_cors() {
 
-        echo
-        echo "Configurando CORS:"
-        echo "$SERVICE_FILE"
+    local FILE="$1"
 
-        if ! grep -q "from flask_cors import CORS" "$SERVICE_FILE"; then
-
-            sed -i '/from flask import Flask, request, jsonify/a from flask_cors import CORS' "$SERVICE_FILE"
-
-        fi
-
-        if ! grep -q "CORS(app)" "$SERVICE_FILE"; then
-
-            sed -i '/app = Flask(__name__)/a CORS(app)' "$SERVICE_FILE"
-
-        fi
-
-        echo "✅ CORS configurado."
-
-    else
+    if [ ! -f "$FILE" ]; then
 
         echo "⚠️ Arquivo não encontrado:"
-        echo "$SERVICE_FILE"
+        echo "$FILE"
+
+        return
 
     fi
 
-done
+    echo
+    echo "Configurando:"
+    echo "$FILE"
 
+    backup_file "$FILE"
+
+    if ! grep -q "from flask_cors import CORS" "$FILE"; then
+
+        sed -i '/from flask import Flask/a from flask_cors import CORS' "$FILE"
+
+    fi
+
+    if ! grep -q "CORS(app)" "$FILE"; then
+
+        sed -i '/app = Flask(__name__)/a CORS(app)' "$FILE"
+
+    fi
+
+    echo "✅ CORS configurado."
+
+}
+
+
+configure_flask_cors "$BASE/accounts/accounts.py"
+
+configure_flask_cors "$BASE/transactions/transaction.py"
+
+configure_flask_cors "$BASE/loan/loan.py"
+
+
+# ==================================================
+# 10. MONGODB
+# ==================================================
 
 echo
-echo "8. CRIANDO MONGODB NO DOCKER"
+echo "10. CRIANDO MONGODB"
 echo "=================================================="
 
 if docker ps -a --format '{{.Names}}' | grep -qx "martian-mongodb"; then
@@ -267,8 +348,12 @@ else
 fi
 
 
+# ==================================================
+# 11. AGUARDANDO MONGODB
+# ==================================================
+
 echo
-echo "9. AGUARDANDO MONGODB"
+echo "11. AGUARDANDO MONGODB"
 echo "=================================================="
 
 MONGO_OK=false
@@ -277,13 +362,15 @@ for i in {1..30}; do
 
     if docker exec martian-mongodb \
         mongosh --quiet \
-        --eval 'db.adminCommand("ping").ok' 2>/dev/null | grep -q "1"; then
+        --eval 'db.adminCommand("ping").ok' 2>/dev/null \
+        | grep -q "1"; then
 
         echo "✅ MongoDB está pronto."
 
         MONGO_OK=true
 
         break
+
     fi
 
     echo "Aguardando MongoDB... ($i/30)"
@@ -304,8 +391,12 @@ if [ "$MONGO_OK" != "true" ]; then
 fi
 
 
+# ==================================================
+# 12. .ENV
+# ==================================================
+
 echo
-echo "10. CONFIGURANDO .ENV DOS MICROSSERVIÇOS"
+echo "12. CONFIGURANDO .ENV"
 echo "=================================================="
 
 SERVICES=(
@@ -323,23 +414,31 @@ for SERVICE in "${SERVICES[@]}"; do
 
     if [ -d "$BASE/$SERVICE" ]; then
 
-        echo "Configurando: $SERVICE"
+        echo "Configurando:"
+        echo "$SERVICE"
 
         cat > "$BASE/$SERVICE/.env" <<ENV
 DB_URL="$DB_URL"
 ENV
 
+        echo "✅ $SERVICE/.env"
+
     else
 
-        echo "⚠️ Diretório não encontrado: $SERVICE"
+        echo "⚠️ Diretório não encontrado:"
+        echo "$SERVICE"
 
     fi
 
 done
 
 
+# ==================================================
+# 13. RUN_LOCAL
+# ==================================================
+
 echo
-echo "11. ALTERANDO run_local.sh PARA LINUX + EC2"
+echo "13. CONFIGURANDO run_local.sh"
 echo "=================================================="
 
 RUN_LOCAL="$BASE/scripts/run_local.sh"
@@ -354,13 +453,7 @@ if [ ! -f "$RUN_LOCAL" ]; then
 fi
 
 
-if [ ! -f "$RUN_LOCAL.original" ]; then
-
-    echo "📦 Criando backup do run_local.sh original..."
-
-    cp "$RUN_LOCAL" "$RUN_LOCAL.original"
-
-fi
+backup_file "$RUN_LOCAL"
 
 
 cat > "$RUN_LOCAL" <<'SCRIPT'
@@ -386,7 +479,7 @@ echo "Python:  $(python3 --version)"
 
 echo
 echo "=================================================="
-echo "Running Javascript microservices"
+echo " JAVASCRIPT MICROSERVICES"
 echo "=================================================="
 
 
@@ -396,7 +489,7 @@ run_javascript_microservice() {
     local service_alias="$2"
 
     echo
-    echo "Running $service_name microservice..."
+    echo "Running $service_name..."
     echo "=================================================="
 
     cd "$BASE/$service_name"
@@ -407,7 +500,7 @@ run_javascript_microservice() {
 
     LOG="$BASE/$service_name.log"
 
-    echo "🚀 Iniciando $service_name..."
+    echo "🚀 Iniciando..."
 
     nohup npm run "$service_alias" > "$LOG" 2>&1 &
 
@@ -419,7 +512,7 @@ run_javascript_microservice() {
 
     if kill -0 "$PID" 2>/dev/null; then
 
-        echo "✅ $service_name is running"
+        echo "✅ $service_name está rodando"
         echo "   PID: $PID"
         echo "   LOG: $LOG"
 
@@ -428,7 +521,6 @@ run_javascript_microservice() {
         echo "❌ Falha ao iniciar $service_name"
 
         echo
-        echo "Últimas linhas do log:"
         tail -30 "$LOG"
 
     fi
@@ -445,7 +537,7 @@ run_javascript_microservice "atm-locator" "atm"
 
 echo
 echo "=================================================="
-echo "Running Python microservices"
+echo " PYTHON MICROSERVICES"
 echo "=================================================="
 
 
@@ -455,7 +547,7 @@ run_python_microservice() {
     local service_alias="$2"
 
     echo
-    echo "Running $service_name microservice..."
+    echo "Running $service_name..."
     echo "=================================================="
 
     cd "$BASE/$service_name"
@@ -474,7 +566,7 @@ run_python_microservice() {
 
     LOG="$BASE/$service_name.log"
 
-    echo "🚀 Iniciando $service_name..."
+    echo "🚀 Iniciando..."
 
     nohup python3 "$service_alias.py" > "$LOG" 2>&1 &
 
@@ -486,7 +578,7 @@ run_python_microservice() {
 
     if kill -0 "$PID" 2>/dev/null; then
 
-        echo "✅ $service_name is running"
+        echo "✅ $service_name está rodando"
         echo "   PID: $PID"
         echo "   LOG: $LOG"
 
@@ -495,7 +587,6 @@ run_python_microservice() {
         echo "❌ Falha ao iniciar $service_name"
 
         echo
-        echo "Últimas linhas do log:"
         tail -30 "$LOG"
 
     fi
@@ -520,93 +611,78 @@ echo " MARTIAN BANK - STARTUP FINALIZADO"
 echo "=================================================="
 
 
-echo
-echo "Processos iniciados:"
-echo
-
 ps -ef | grep -E 'node|python3' | grep "$BASE" | grep -v grep || true
 
 
 echo
-echo "Logs disponíveis em:"
+echo "Logs:"
 echo "$BASE/*.log"
 
 SCRIPT
 
 chmod +x "$RUN_LOCAL"
 
-echo "✅ run_local.sh foi adaptado para Linux/EC2."
+echo "✅ run_local.sh configurado."
 
 
-echo
-echo "12. CONFERINDO .ENV"
-echo "=================================================="
-
-for SERVICE in "${SERVICES[@]}"; do
-
-    if [ -f "$BASE/$SERVICE/.env" ]; then
-
-        echo "✅ $SERVICE/.env"
-
-    else
-
-        echo "❌ $SERVICE/.env NÃO ENCONTRADO"
-
-    fi
-
-done
-
+# ==================================================
+# 14. EXECUTAR
+# ==================================================
 
 echo
-echo "13. EXECUTANDO MARTIAN BANK"
+echo "14. INICIANDO MARTIAN BANK"
 echo "=================================================="
 
 cd "$BASE/scripts"
 
-chmod +x run_local.sh
-
-echo
-echo "🚀 Executando:"
-echo "./run_local.sh"
-echo
-
 ./run_local.sh
 
 
-echo
-echo "=================================================="
-echo "14. AGUARDANDO SERVIÇOS"
-echo "=================================================="
-
-sleep 5
-
+# ==================================================
+# 15. AGUARDAR SERVIÇOS
+# ==================================================
 
 echo
+echo "15. AGUARDANDO SERVIÇOS"
 echo "=================================================="
-echo "15. VERIFICANDO PROCESSOS"
+
+sleep 8
+
+
+# ==================================================
+# 16. PROCESSOS
+# ==================================================
+
+echo
+echo "16. PROCESSOS"
 echo "=================================================="
 
 ps -ef | grep -E 'node|python3' | grep "$BASE" | grep -v grep || true
 
 
-echo
-echo "=================================================="
-echo "16. PORTAS"
-echo "=================================================="
+# ==================================================
+# 17. PORTAS
+# ==================================================
 
 echo
-echo "Portas TCP abertas:"
+echo "17. PORTAS"
+echo "=================================================="
 
-sudo ss -lntp 2>/dev/null | grep -E ':3000|:8000|:8001|:5000' || true
+sudo ss -lntp 2>/dev/null \
+    | grep -E ':3000|:5000|:8000|:8001' \
+    || true
 
+
+# ==================================================
+# 18. TESTE DOS SERVIÇOS
+# ==================================================
 
 echo
-echo "=================================================="
-echo "17. TESTANDO SERVIÇOS LOCALMENTE"
+echo "18. TESTANDO SERVIÇOS"
 echo "=================================================="
 
 
-test_port() {
+test_service() {
 
     local PORT="$1"
     local NAME="$2"
@@ -623,7 +699,9 @@ test_port() {
 
         echo "✅ Porta $PORT está LISTEN."
 
-        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+        HTTP_STATUS=$(curl -s \
+            -o /dev/null \
+            -w "%{http_code}" \
             --max-time 10 \
             "$URL" || true)
 
@@ -638,38 +716,239 @@ test_port() {
 }
 
 
-test_port 3000 "UI" "http://localhost:3000"
+test_service 3000 "UI" "http://localhost:3000"
 
-test_port 8000 "CUSTOMER AUTH" "http://localhost:8000"
+test_service 8000 "CUSTOMER AUTH" "http://localhost:8000"
 
-test_port 8001 "ATM LOCATOR" "http://localhost:8001"
+test_service 8001 "ATM LOCATOR" "http://localhost:8001"
 
-test_port 5000 "ACCOUNTS / TRANSACTIONS / LOAN" "http://localhost:5000"
+test_service 5000 "BACKEND PYTHON" "http://localhost:5000"
 
+
+# ==================================================
+# 19. CRIAR USUARIO DE TESTE
+# ==================================================
 
 echo
 echo "=================================================="
-echo "18. LOG DA UI"
+echo "19. CRIANDO USUARIO DE TESTE"
 echo "=================================================="
 
-if [ -f "$BASE/ui.log" ]; then
 
-    echo "Últimas 30 linhas:"
+TEST_NAME="Teste"
+TEST_EMAIL="teste@teste.com"
+TEST_PASSWORD="teste@teste.com"
+
+
+AUTH_READY=false
+
+
+echo
+echo "Aguardando Customer Auth..."
+
+
+for i in {1..30}; do
+
+    if curl -s \
+        --max-time 3 \
+        http://localhost:8000/api/users/ \
+        >/dev/null 2>&1; then
+
+        AUTH_READY=true
+
+        break
+
+    fi
+
+    echo "Aguardando Customer Auth... ($i/30)"
+
+    sleep 2
+
+done
+
+
+if [ "$AUTH_READY" = "true" ]; then
+
+    echo "✅ Customer Auth disponível."
+
+
     echo
+    echo "Tentando criar usuário..."
 
-    tail -30 "$BASE/ui.log"
+    REGISTER_RESPONSE=$(curl -s \
+        --max-time 10 \
+        -X POST \
+        "http://localhost:8000/api/users/" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"name\": \"$TEST_NAME\",
+            \"email\": \"$TEST_EMAIL\",
+            \"password\": \"$TEST_PASSWORD\"
+        }")
+
+
+    echo
+    echo "Resposta:"
+    echo "$REGISTER_RESPONSE"
+
+
+    if echo "$REGISTER_RESPONSE" | grep -qiE \
+        'already exists|user already|duplicate'; then
+
+        echo
+        echo "ℹ️ Usuário já existe."
+
+    elif echo "$REGISTER_RESPONSE" | grep -qiE \
+        '"token"|"email"|success|created'; then
+
+        echo
+        echo "✅ Usuário criado."
+
+    else
+
+        echo
+        echo "⚠️ Não foi possível confirmar o cadastro."
+
+    fi
+
 
 else
 
-    echo "⚠️ ui.log não encontrado."
+    echo
+    echo "❌ Customer Auth não respondeu."
 
 fi
 
 
+# ==================================================
+# 20. VALIDAR LOGIN
+# ==================================================
+
 echo
 echo "=================================================="
-echo "19. STATUS DOS MICROSSERVIÇOS"
+echo "20. VALIDANDO LOGIN"
 echo "=================================================="
+
+
+if [ "$AUTH_READY" = "true" ]; then
+
+    LOGIN_RESPONSE=$(curl -s \
+        --max-time 10 \
+        -X POST \
+        "http://localhost:8000/api/users/auth" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"email\": \"$TEST_EMAIL\",
+            \"password\": \"$TEST_PASSWORD\"
+        }")
+
+
+    echo
+    echo "Resposta do login:"
+
+    echo "$LOGIN_RESPONSE" \
+        | sed -E 's/"token":"[^"]+"/"token":"***TOKEN OCULTO***"/g'
+
+
+    LOGIN_TOKEN=$(echo "$LOGIN_RESPONSE" \
+        | sed -nE 's/.*"token"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p')
+
+
+    if [ -n "$LOGIN_TOKEN" ]; then
+
+        echo
+        echo "✅ LOGIN VALIDADO COM SUCESSO!"
+
+        echo
+        echo "Usuário:"
+        echo "$TEST_EMAIL"
+
+        echo
+        echo "Senha:"
+        echo "$TEST_PASSWORD"
+
+        echo
+        echo "Token JWT:"
+        echo "${LOGIN_TOKEN:0:20}..."
+
+    else
+
+        echo
+        echo "❌ LOGIN NÃO VALIDADO."
+
+        echo
+        echo "Verifique o log:"
+        echo "tail -50 $BASE/customer-auth.log"
+
+    fi
+
+fi
+
+
+# ==================================================
+# 21. IP PUBLICO
+# ==================================================
+
+echo
+echo "=================================================="
+echo "21. URL DA MARTIAN BANK"
+echo "=================================================="
+
+
+IP=$(curl -s \
+    --max-time 5 \
+    http://169.254.169.254/latest/meta-data/public-ipv4 \
+    || true)
+
+
+if [ -n "$IP" ]; then
+
+    echo
+    echo "🌐 IP público da EC2:"
+    echo "$IP"
+
+    echo
+    echo "🚀 ACESSE NO NAVEGADOR:"
+    echo
+    echo "http://$IP:3000"
+
+    echo
+    echo "LOGIN DE TESTE:"
+    echo
+    echo "Usuário: teste@teste.com"
+    echo "Senha:   teste@teste.com"
+
+    echo
+    echo "APIs:"
+    echo
+    echo "Customer Auth:"
+    echo "http://$IP:8000"
+
+    echo
+    echo "ATM Locator:"
+    echo "http://$IP:8001"
+
+    echo
+    echo "Backend:"
+    echo "http://$IP:5000"
+
+else
+
+    echo
+    echo "⚠️ Não foi possível obter o IP público."
+
+fi
+
+
+# ==================================================
+# 22. STATUS
+# ==================================================
+
+echo
+echo "=================================================="
+echo "22. STATUS DOS MICROSSERVIÇOS"
+echo "=================================================="
+
 
 for SERVICE in \
     ui \
@@ -704,57 +983,15 @@ do
 done
 
 
-echo
-echo "=================================================="
-echo "20. URL DA MARTIAN BANK"
-echo "=================================================="
-
-
-IP=$(curl -s --max-time 5 \
-    http://169.254.169.254/latest/meta-data/public-ipv4 || true)
-
-
-if [ -n "$IP" ]; then
-
-    echo
-    echo "🌐 IP público da EC2:"
-    echo "$IP"
-
-    echo
-    echo "🚀 ACESSE NO NAVEGADOR:"
-    echo
-    echo "http://$IP:3000"
-
-    echo
-    echo "APIs:"
-    echo
-    echo "Customer Auth:"
-    echo "http://$IP:8000"
-
-    echo
-    echo "ATM Locator:"
-    echo "http://$IP:8001"
-
-    echo
-    echo "Accounts / Transactions / Loan:"
-    echo "http://$IP:5000"
-
-else
-
-    echo "⚠️ Não foi possível obter o IP público da EC2."
-
-    echo
-    echo "Use:"
-    echo
-    echo "http://IP_PUBLICO_DA_EC2:3000"
-
-fi
-
+# ==================================================
+# 23. MONGODB
+# ==================================================
 
 echo
 echo "=================================================="
-echo "21. MONGODB"
+echo "23. MONGODB"
 echo "=================================================="
+
 
 docker ps \
     --filter name=martian-mongodb \
@@ -766,16 +1003,22 @@ echo "MongoDB:"
 echo "mongodb://localhost:27017/martianbank"
 
 
-echo
-echo "=================================================="
-echo "22. LOGS DOS SERVIÇOS"
-echo "=================================================="
+# ==================================================
+# 24. LOGS
+# ==================================================
 
 echo
-echo "Arquivos de log:"
+echo "=================================================="
+echo "24. LOGS"
+echo "=================================================="
+
 
 ls -lh "$BASE"/*.log 2>/dev/null || true
 
+
+# ==================================================
+# FINAL
+# ==================================================
 
 echo
 echo "=================================================="
@@ -786,16 +1029,19 @@ echo "=================================================="
 echo
 echo "IMPORTANTE:"
 echo
-echo "Libere no Security Group da EC2:"
+echo "Liberar no Security Group da EC2:"
 echo
 echo "TCP 3000"
 echo "TCP 5000"
 echo "TCP 8000"
 echo "TCP 8001"
+
+
 echo
-echo "Depois acesse:"
+echo "LOGIN DE TESTE:"
 echo
-echo "http://IP_PUBLICO_DA_EC2:3000"
+echo "Email: teste@teste.com"
+echo "Senha: teste@teste.com"
 
 
 echo
@@ -805,9 +1051,9 @@ echo "tail -f $BASE/ui.log"
 
 
 echo
-echo "Para acompanhar todos os logs:"
+echo "Para acompanhar Customer Auth:"
 echo
-echo "tail -f $BASE/*.log"
+echo "tail -f $BASE/customer-auth.log"
 
 
 echo
@@ -821,9 +1067,8 @@ echo
 echo "=================================================="
 echo " SCRIPT CRIADO"
 echo "=================================================="
-
 echo
 echo "Execute:"
 echo
-echo "./instalar_martian_bank.sh"
+echo "~/instalar_martian_bank.sh"
 echo
