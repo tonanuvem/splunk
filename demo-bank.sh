@@ -895,7 +895,7 @@ echo "21. URL DA MARTIAN BANK"
 echo "=================================================="
 
 
-IP=$(curl -s checkip.amazonaws.com) || true)
+IP=$(curl -s checkip.amazonaws.com || true)
 
 
 if [ -n "$IP" ]; then
