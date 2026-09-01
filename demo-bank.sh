@@ -9,6 +9,7 @@ echo "=================================================="
 
 BASE="$HOME/martian-bank-demo"
 
+
 echo
 echo "1. VERIFICANDO DOCKER"
 echo "=================================================="
@@ -109,7 +110,135 @@ cd "$BASE"
 
 
 echo
-echo "5. CRIANDO MONGODB NO DOCKER"
+echo "5. CONFIGURANDO UI PARA EC2"
+echo "=================================================="
+
+API_URLS="$BASE/ui/src/slices/apiUrls.js"
+
+cat > "$API_URLS" <<'JS'
+/*
+ * URLs da API para execução em EC2.
+ *
+ * A UI usa o mesmo hostname/IP utilizado pelo navegador.
+ *
+ * Exemplo:
+ *
+ * UI:
+ *   http://18.215.161.178:3000
+ *
+ * APIs:
+ *   http://18.215.161.178:8000
+ *   http://18.215.161.178:8001
+ *   http://18.215.161.178:5000
+ */
+
+const HOST = window.location.hostname;
+const PROTOCOL = window.location.protocol;
+
+const VITE_USERS_URL =
+  `${PROTOCOL}//${HOST}:8000/api/users/`;
+
+const VITE_ATM_URL =
+  `${PROTOCOL}//${HOST}:8001/api/atm/`;
+
+const VITE_ACCOUNTS_URL =
+  `${PROTOCOL}//${HOST}:5000/account/`;
+
+const VITE_TRANSFER_URL =
+  `${PROTOCOL}//${HOST}:5000/transaction/`;
+
+const VITE_LOAN_URL =
+  `${PROTOCOL}//${HOST}:5000/loan/`;
+
+const ApiUrls = {
+  VITE_USERS_URL,
+  VITE_ATM_URL,
+  VITE_ACCOUNTS_URL,
+  VITE_TRANSFER_URL,
+  VITE_LOAN_URL,
+};
+
+export default ApiUrls;
+JS
+
+echo "✅ apiUrls.js ajustado para EC2."
+
+echo
+echo "URLs configuradas:"
+cat "$API_URLS"
+
+
+echo
+echo "6. CONFIGURANDO VITE PARA ACESSO EXTERNO"
+echo "=================================================="
+
+VITE_CONFIG="$BASE/ui/vite.config.js"
+
+cat > "$VITE_CONFIG" <<'JS'
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+
+  server: {
+    host: '0.0.0.0',
+    port: 3000,
+    strictPort: true,
+  },
+
+  preview: {
+    host: '0.0.0.0',
+    port: 3000,
+  },
+})
+JS
+
+echo "✅ Vite configurado para 0.0.0.0:3000."
+
+
+echo
+echo "7. CONFIGURANDO CORS DOS SERVIÇOS FLASK"
+echo "=================================================="
+
+for SERVICE_FILE in \
+    "$BASE/accounts/accounts.py" \
+    "$BASE/transactions/transaction.py" \
+    "$BASE/loan/loan.py"
+do
+
+    if [ -f "$SERVICE_FILE" ]; then
+
+        echo
+        echo "Configurando CORS:"
+        echo "$SERVICE_FILE"
+
+        if ! grep -q "from flask_cors import CORS" "$SERVICE_FILE"; then
+
+            sed -i '/from flask import Flask, request, jsonify/a from flask_cors import CORS' "$SERVICE_FILE"
+
+        fi
+
+        if ! grep -q "CORS(app)" "$SERVICE_FILE"; then
+
+            sed -i '/app = Flask(__name__)/a CORS(app)' "$SERVICE_FILE"
+
+        fi
+
+        echo "✅ CORS configurado."
+
+    else
+
+        echo "⚠️ Arquivo não encontrado:"
+        echo "$SERVICE_FILE"
+
+    fi
+
+done
+
+
+echo
+echo "8. CRIANDO MONGODB NO DOCKER"
 echo "=================================================="
 
 if docker ps -a --format '{{.Names}}' | grep -qx "martian-mongodb"; then
@@ -139,7 +268,7 @@ fi
 
 
 echo
-echo "6. AGUARDANDO MONGODB"
+echo "9. AGUARDANDO MONGODB"
 echo "=================================================="
 
 MONGO_OK=false
@@ -176,7 +305,7 @@ fi
 
 
 echo
-echo "7. CONFIGURANDO .ENV DOS MICROSSERVIÇOS"
+echo "10. CONFIGURANDO .ENV DOS MICROSSERVIÇOS"
 echo "=================================================="
 
 SERVICES=(
@@ -210,7 +339,7 @@ done
 
 
 echo
-echo "8. ALTERANDO run_local.sh PARA LINUX"
+echo "11. ALTERANDO run_local.sh PARA LINUX + EC2"
 echo "=================================================="
 
 RUN_LOCAL="$BASE/scripts/run_local.sh"
@@ -245,13 +374,15 @@ cd "$BASE"
 
 echo
 echo "=================================================="
-echo " MARTIAN BANK - LINUX"
+echo " MARTIAN BANK - LINUX / EC2"
 echo "=================================================="
+
 
 echo
 echo "Node.js: $(node --version)"
 echo "npm:     $(npm --version)"
 echo "Python:  $(python3 --version)"
+
 
 echo
 echo "=================================================="
@@ -295,6 +426,7 @@ run_javascript_microservice() {
     else
 
         echo "❌ Falha ao iniciar $service_name"
+
         echo
         echo "Últimas linhas do log:"
         tail -30 "$LOG"
@@ -361,6 +493,7 @@ run_python_microservice() {
     else
 
         echo "❌ Falha ao iniciar $service_name"
+
         echo
         echo "Últimas linhas do log:"
         tail -30 "$LOG"
@@ -386,11 +519,13 @@ echo "=================================================="
 echo " MARTIAN BANK - STARTUP FINALIZADO"
 echo "=================================================="
 
+
 echo
 echo "Processos iniciados:"
 echo
 
 ps -ef | grep -E 'node|python3' | grep "$BASE" | grep -v grep || true
+
 
 echo
 echo "Logs disponíveis em:"
@@ -400,11 +535,11 @@ SCRIPT
 
 chmod +x "$RUN_LOCAL"
 
-echo "✅ run_local.sh foi adaptado para Linux."
+echo "✅ run_local.sh foi adaptado para Linux/EC2."
 
 
 echo
-echo "9. CONFERINDO .ENV"
+echo "12. CONFERINDO .ENV"
 echo "=================================================="
 
 for SERVICE in "${SERVICES[@]}"; do
@@ -423,7 +558,7 @@ done
 
 
 echo
-echo "10. EXECUTANDO MARTIAN BANK"
+echo "13. EXECUTANDO MARTIAN BANK"
 echo "=================================================="
 
 cd "$BASE/scripts"
@@ -440,7 +575,7 @@ echo
 
 echo
 echo "=================================================="
-echo "11. AGUARDANDO SERVIÇOS"
+echo "14. AGUARDANDO SERVIÇOS"
 echo "=================================================="
 
 sleep 5
@@ -448,7 +583,7 @@ sleep 5
 
 echo
 echo "=================================================="
-echo "12. VERIFICANDO PROCESSOS"
+echo "15. VERIFICANDO PROCESSOS"
 echo "=================================================="
 
 ps -ef | grep -E 'node|python3' | grep "$BASE" | grep -v grep || true
@@ -456,51 +591,65 @@ ps -ef | grep -E 'node|python3' | grep "$BASE" | grep -v grep || true
 
 echo
 echo "=================================================="
-echo "13. VERIFICANDO PORTA 3000"
+echo "16. PORTAS"
 echo "=================================================="
 
-if sudo ss -lntp 2>/dev/null | grep -q ':3000'; then
+echo
+echo "Portas TCP abertas:"
 
-    echo "✅ Porta 3000 está em LISTEN."
-
-    sudo ss -lntp | grep ':3000'
-
-else
-
-    echo "⚠️ Porta 3000 não está escutando."
-
-fi
+sudo ss -lntp 2>/dev/null | grep -E ':3000|:8000|:8001|:5000' || true
 
 
 echo
 echo "=================================================="
-echo "14. TESTANDO MARTIAN BANK LOCALMENTE"
+echo "17. TESTANDO SERVIÇOS LOCALMENTE"
 echo "=================================================="
 
-HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-    --max-time 10 \
-    http://localhost:3000 || true)
 
-echo "HTTP Status: $HTTP_STATUS"
+test_port() {
 
-if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "304" ]; then
+    local PORT="$1"
+    local NAME="$2"
+    local URL="$3"
 
-    echo "✅ Martian Bank respondeu corretamente."
+    echo
+    echo "----------------------------------------"
+    echo "$NAME"
+    echo "Porta: $PORT"
+    echo "URL:   $URL"
+    echo "----------------------------------------"
 
-elif [ "$HTTP_STATUS" = "000" ]; then
+    if sudo ss -lnt 2>/dev/null | grep -q ":$PORT "; then
 
-    echo "⚠️ Não foi possível conectar à porta 3000."
+        echo "✅ Porta $PORT está LISTEN."
 
-else
+        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 10 \
+            "$URL" || true)
 
-    echo "⚠️ Aplicação respondeu com HTTP $HTTP_STATUS."
+        echo "HTTP Status: $HTTP_STATUS"
 
-fi
+    else
+
+        echo "❌ Porta $PORT NÃO está LISTEN."
+
+    fi
+
+}
+
+
+test_port 3000 "UI" "http://localhost:3000"
+
+test_port 8000 "CUSTOMER AUTH" "http://localhost:8000"
+
+test_port 8001 "ATM LOCATOR" "http://localhost:8001"
+
+test_port 5000 "ACCOUNTS / TRANSACTIONS / LOAN" "http://localhost:5000"
 
 
 echo
 echo "=================================================="
-echo "15. LOG DA UI"
+echo "18. LOG DA UI"
 echo "=================================================="
 
 if [ -f "$BASE/ui.log" ]; then
@@ -519,7 +668,7 @@ fi
 
 echo
 echo "=================================================="
-echo "16. STATUS DOS MICROSSERVIÇOS"
+echo "19. STATUS DOS MICROSSERVIÇOS"
 echo "=================================================="
 
 for SERVICE in \
@@ -557,11 +706,13 @@ done
 
 echo
 echo "=================================================="
-echo "17. URL DA MARTIAN BANK"
+echo "20. URL DA MARTIAN BANK"
 echo "=================================================="
+
 
 IP=$(curl -s --max-time 5 \
     http://169.254.169.254/latest/meta-data/public-ipv4 || true)
+
 
 if [ -n "$IP" ]; then
 
@@ -573,6 +724,20 @@ if [ -n "$IP" ]; then
     echo "🚀 ACESSE NO NAVEGADOR:"
     echo
     echo "http://$IP:3000"
+
+    echo
+    echo "APIs:"
+    echo
+    echo "Customer Auth:"
+    echo "http://$IP:8000"
+
+    echo
+    echo "ATM Locator:"
+    echo "http://$IP:8001"
+
+    echo
+    echo "Accounts / Transactions / Loan:"
+    echo "http://$IP:5000"
 
 else
 
@@ -588,7 +753,7 @@ fi
 
 echo
 echo "=================================================="
-echo "18. MONGODB"
+echo "21. MONGODB"
 echo "=================================================="
 
 docker ps \
@@ -603,11 +768,12 @@ echo "mongodb://localhost:27017/martianbank"
 
 echo
 echo "=================================================="
-echo "19. LOGS DOS SERVIÇOS"
+echo "22. LOGS DOS SERVIÇOS"
 echo "=================================================="
 
 echo
 echo "Arquivos de log:"
+
 ls -lh "$BASE"/*.log 2>/dev/null || true
 
 
@@ -616,22 +782,37 @@ echo "=================================================="
 echo " MARTIAN BANK INICIADO"
 echo "=================================================="
 
+
 echo
-echo "Se a porta 3000 estiver liberada no Security Group,"
-echo "acesse a URL exibida acima pelo navegador."
+echo "IMPORTANTE:"
+echo
+echo "Libere no Security Group da EC2:"
+echo
+echo "TCP 3000"
+echo "TCP 5000"
+echo "TCP 8000"
+echo "TCP 8001"
+echo
+echo "Depois acesse:"
+echo
+echo "http://IP_PUBLICO_DA_EC2:3000"
+
 
 echo
 echo "Para acompanhar a UI:"
 echo
 echo "tail -f $BASE/ui.log"
 
+
 echo
 echo "Para acompanhar todos os logs:"
 echo
 echo "tail -f $BASE/*.log"
 
+
 echo
 echo "=================================================="
+
 EOF
 
 chmod +x ~/instalar_martian_bank.sh
@@ -640,6 +821,7 @@ echo
 echo "=================================================="
 echo " SCRIPT CRIADO"
 echo "=================================================="
+
 echo
 echo "Execute:"
 echo
