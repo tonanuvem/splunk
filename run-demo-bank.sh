@@ -10,6 +10,10 @@ echo "=================================================="
 
 BASE="$HOME/martian-bank-demo"
 
+TEST_NAME="Teste"
+TEST_EMAIL="teste@teste.com"
+TEST_PASSWORD="Teste@123"
+
 
 # ==================================================
 # 1. DOCKER
@@ -112,8 +116,10 @@ if ! command -v git >/dev/null 2>&1; then
 
     if command -v dnf >/dev/null 2>&1; then
         sudo dnf install -y git
+
     elif command -v yum >/dev/null 2>&1; then
         sudo yum install -y git
+
     elif command -v apt-get >/dev/null 2>&1; then
         sudo apt-get install -y git
     fi
@@ -175,7 +181,7 @@ backup_file() {
 
 
 # ==================================================
-# 7. CONFIGURANDO API URLS DA UI
+# 7. URLS DA UI
 # ==================================================
 
 echo
@@ -315,11 +321,31 @@ configure_flask_cors "$BASE/loan/loan.py"
 
 
 # ==================================================
-# 10. MONGODB
+# 10. DASHBOARD PARA EC2
 # ==================================================
 
 echo
-echo "10. CRIANDO MONGODB"
+echo "10. CONFIGURANDO DASHBOARD PARA EC2"
+echo "=================================================="
+
+DASHBOARD="$BASE/dashboard/dashboard.py"
+
+backup_file "$DASHBOARD"
+
+sed -i \
+'s/app.run(debug=True)/app.run(host="0.0.0.0", port=5000, debug=False)/' \
+"$DASHBOARD"
+
+echo "✅ Dashboard configurado:"
+echo "   0.0.0.0:5000"
+
+
+# ==================================================
+# 11. MONGODB
+# ==================================================
+
+echo
+echo "11. CRIANDO MONGODB"
 echo "=================================================="
 
 if docker ps -a --format '{{.Names}}' | grep -qx "martian-mongodb"; then
@@ -349,11 +375,11 @@ fi
 
 
 # ==================================================
-# 11. AGUARDANDO MONGODB
+# 12. AGUARDANDO MONGODB
 # ==================================================
 
 echo
-echo "11. AGUARDANDO MONGODB"
+echo "12. AGUARDANDO MONGODB"
 echo "=================================================="
 
 MONGO_OK=false
@@ -392,11 +418,11 @@ fi
 
 
 # ==================================================
-# 12. .ENV
+# 13. ENV
 # ==================================================
 
 echo
-echo "12. CONFIGURANDO .ENV"
+echo "13. CONFIGURANDO .ENV"
 echo "=================================================="
 
 SERVICES=(
@@ -434,11 +460,54 @@ done
 
 
 # ==================================================
-# 13. RUN_LOCAL
+# 14. PARAR PROCESSOS ANTIGOS
 # ==================================================
 
 echo
-echo "13. CONFIGURANDO run_local.sh"
+echo "14. VERIFICANDO PROCESSOS ANTIGOS"
+echo "=================================================="
+
+for PORT in 3000 5000 8000 8001; do
+
+    PIDS=$(sudo lsof -t -i:"$PORT" 2>/dev/null || true)
+
+    if [ -n "$PIDS" ]; then
+
+        echo "⚠️ Porta $PORT ocupada."
+
+        for PID in $PIDS; do
+
+            CMD=$(ps -p "$PID" -o cmd= 2>/dev/null || true)
+
+            if echo "$CMD" | grep -q "$BASE"; then
+
+                echo "🛑 Parando processo $PID:"
+                echo "$CMD"
+
+                kill "$PID" 2>/dev/null || true
+
+            else
+
+                echo "ℹ️ Processo $PID não pertence ao Martian Bank."
+                echo "$CMD"
+
+            fi
+
+        done
+
+    fi
+
+done
+
+sleep 2
+
+
+# ==================================================
+# 15. RUN_LOCAL
+# ==================================================
+
+echo
+echo "15. CONFIGURANDO run_local.sh"
 echo "=================================================="
 
 RUN_LOCAL="$BASE/scripts/run_local.sh"
@@ -451,7 +520,6 @@ if [ ! -f "$RUN_LOCAL" ]; then
     exit 1
 
 fi
-
 
 backup_file "$RUN_LOCAL"
 
@@ -476,6 +544,10 @@ echo "Node.js: $(node --version)"
 echo "npm:     $(npm --version)"
 echo "Python:  $(python3 --version)"
 
+
+# ==================================================
+# JAVASCRIPT
+# ==================================================
 
 echo
 echo "=================================================="
@@ -534,6 +606,10 @@ run_javascript_microservice "customer-auth" "auth"
 
 run_javascript_microservice "atm-locator" "atm"
 
+
+# ==================================================
+# PYTHON
+# ==================================================
 
 echo
 echo "=================================================="
@@ -626,11 +702,11 @@ echo "✅ run_local.sh configurado."
 
 
 # ==================================================
-# 14. EXECUTAR
+# 16. INICIAR
 # ==================================================
 
 echo
-echo "14. INICIANDO MARTIAN BANK"
+echo "16. INICIANDO MARTIAN BANK"
 echo "=================================================="
 
 cd "$BASE/scripts"
@@ -639,33 +715,33 @@ cd "$BASE/scripts"
 
 
 # ==================================================
-# 15. AGUARDAR SERVIÇOS
+# 17. AGUARDAR
 # ==================================================
 
 echo
-echo "15. AGUARDANDO SERVIÇOS"
+echo "17. AGUARDANDO SERVIÇOS"
 echo "=================================================="
 
 sleep 8
 
 
 # ==================================================
-# 16. PROCESSOS
+# 18. PROCESSOS
 # ==================================================
 
 echo
-echo "16. PROCESSOS"
+echo "18. PROCESSOS"
 echo "=================================================="
 
 ps -ef | grep -E 'node|python3' | grep "$BASE" | grep -v grep || true
 
 
 # ==================================================
-# 17. PORTAS
+# 19. PORTAS
 # ==================================================
 
 echo
-echo "17. PORTAS"
+echo "19. PORTAS"
 echo "=================================================="
 
 sudo ss -lntp 2>/dev/null \
@@ -674,11 +750,11 @@ sudo ss -lntp 2>/dev/null \
 
 
 # ==================================================
-# 18. TESTE DOS SERVIÇOS
+# 20. TESTAR SERVIÇOS
 # ==================================================
 
 echo
-echo "18. TESTANDO SERVIÇOS"
+echo "20. TESTANDO SERVIÇOS"
 echo "=================================================="
 
 
@@ -716,28 +792,60 @@ test_service() {
 }
 
 
-test_service 3000 "UI" "http://localhost:3000"
+test_service 3000 "UI" \
+    "http://localhost:3000"
 
-test_service 8000 "CUSTOMER AUTH" "http://localhost:8000"
+test_service 8000 "CUSTOMER AUTH" \
+    "http://localhost:8000"
 
-test_service 8001 "ATM LOCATOR" "http://localhost:8001"
+test_service 8001 "ATM LOCATOR" \
+    "http://localhost:8001"
 
-test_service 5000 "BACKEND PYTHON" "http://localhost:5000"
+test_service 5000 "BACKEND PYTHON" \
+    "http://localhost:5000"
 
 
 # ==================================================
-# 19. CRIAR USUARIO DE TESTE
+# 21. TESTAR CORS
+# ==================================================
+
+echo
+echo "21. TESTANDO CORS DO BACKEND"
+echo "=================================================="
+
+
+CORS_RESPONSE=$(curl -s -i \
+    -X OPTIONS \
+    "http://localhost:5000/account/allaccounts" \
+    -H "Origin: http://localhost:3000" \
+    -H "Access-Control-Request-Method: GET" \
+    || true)
+
+
+echo "$CORS_RESPONSE"
+
+
+if echo "$CORS_RESPONSE" | grep -qi "Access-Control-Allow-Origin"; then
+
+    echo
+    echo "✅ CORS está habilitado."
+
+else
+
+    echo
+    echo "⚠️ CORS não foi identificado na resposta."
+
+fi
+
+
+# ==================================================
+# 22. CRIAR USUARIO
 # ==================================================
 
 echo
 echo "=================================================="
-echo "19. CRIANDO USUARIO DE TESTE"
+echo "22. CRIANDO USUARIO DE TESTE"
 echo "=================================================="
-
-
-TEST_NAME="Teste"
-TEST_EMAIL="teste@teste.com"
-TEST_PASSWORD="Teste@123"
 
 
 AUTH_READY=false
@@ -751,7 +859,7 @@ for i in {1..30}; do
 
     if curl -s \
         --max-time 3 \
-        http://localhost:8000/api/users/ \
+        "http://localhost:8000/api/users/" \
         >/dev/null 2>&1; then
 
         AUTH_READY=true
@@ -774,6 +882,7 @@ if [ "$AUTH_READY" = "true" ]; then
 
     echo
     echo "Tentando criar usuário..."
+
 
     REGISTER_RESPONSE=$(curl -s \
         --max-time 10 \
@@ -821,12 +930,12 @@ fi
 
 
 # ==================================================
-# 20. VALIDAR LOGIN
+# 23. VALIDAR LOGIN
 # ==================================================
 
 echo
 echo "=================================================="
-echo "20. VALIDANDO LOGIN"
+echo "23. VALIDANDO LOGIN"
 echo "=================================================="
 
 
@@ -877,7 +986,7 @@ if [ "$AUTH_READY" = "true" ]; then
         echo "❌ LOGIN NÃO VALIDADO."
 
         echo
-        echo "Verifique o log:"
+        echo "Verifique:"
         echo "tail -50 $BASE/customer-auth.log"
 
     fi
@@ -886,16 +995,18 @@ fi
 
 
 # ==================================================
-# 21. IP PUBLICO
+# 24. IP PUBLICO
 # ==================================================
 
 echo
 echo "=================================================="
-echo "21. URL DA MARTIAN BANK"
+echo "24. URL DA MARTIAN BANK"
 echo "=================================================="
 
 
-IP=$(curl -s checkip.amazonaws.com || true)
+IP=$(curl -s --max-time 5 checkip.amazonaws.com || true)
+
+IP=$(echo "$IP" | tr -d '[:space:]')
 
 
 if [ -n "$IP" ]; then
@@ -912,8 +1023,8 @@ if [ -n "$IP" ]; then
     echo
     echo "LOGIN DE TESTE:"
     echo
-    echo "Usuário: teste@teste.com"
-    echo "Senha:   teste@teste.com"
+    echo "Usuário: $TEST_EMAIL"
+    echo "Senha:   $TEST_PASSWORD"
 
     echo
     echo "APIs:"
@@ -938,12 +1049,12 @@ fi
 
 
 # ==================================================
-# 22. STATUS
+# 25. STATUS
 # ==================================================
 
 echo
 echo "=================================================="
-echo "22. STATUS DOS MICROSSERVIÇOS"
+echo "25. STATUS DOS MICROSSERVIÇOS"
 echo "=================================================="
 
 
@@ -981,12 +1092,12 @@ done
 
 
 # ==================================================
-# 23. MONGODB
+# 26. MONGODB
 # ==================================================
 
 echo
 echo "=================================================="
-echo "23. MONGODB"
+echo "26. MONGODB"
 echo "=================================================="
 
 
@@ -1001,12 +1112,12 @@ echo "mongodb://localhost:27017/martianbank"
 
 
 # ==================================================
-# 24. LOGS
+# 27. LOGS
 # ==================================================
 
 echo
 echo "=================================================="
-echo "24. LOGS"
+echo "27. LOGS"
 echo "=================================================="
 
 
@@ -1037,8 +1148,8 @@ echo "TCP 8001"
 echo
 echo "LOGIN DE TESTE:"
 echo
-echo "Email: teste@teste.com"
-echo "Senha: teste@teste.com"
+echo "Email: $TEST_EMAIL"
+echo "Senha: $TEST_PASSWORD"
 
 
 echo
@@ -1054,6 +1165,12 @@ echo "tail -f $BASE/customer-auth.log"
 
 
 echo
+echo "Para acompanhar Dashboard:"
+echo
+echo "tail -f $BASE/dashboard.log"
+
+
+echo
 echo "=================================================="
 
 EOF
@@ -1065,9 +1182,9 @@ echo "=================================================="
 echo " SCRIPT CRIADO"
 echo "=================================================="
 echo
-echo "Execute:"
 echo
 echo "~/instalar_bank.sh"
 echo
+echo "=================================================="
 echo "Executando script"
 ~/instalar_bank.sh
