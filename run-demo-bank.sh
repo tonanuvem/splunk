@@ -737,7 +737,7 @@ echo "=================================================="
 
 TEST_NAME="Teste"
 TEST_EMAIL="teste@teste.com"
-TEST_PASSWORD="teste@teste.com"
+TEST_PASSWORD="Teste@123"
 
 
 AUTH_READY=false
