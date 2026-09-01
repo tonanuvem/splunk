@@ -1,4 +1,3 @@
-```bash
 cat > ~/parar_martian_bank.sh <<'EOF'
 #!/bin/bash
 
