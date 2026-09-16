@@ -1137,12 +1137,21 @@ echo "=================================================="
 echo
 echo "IMPORTANTE:"
 echo
-echo "Liberar no Security Group da EC2:"
+echo "Acessar a Solução financeira:"
 echo
-echo "TCP 3000"
-echo "TCP 5000"
-echo "TCP 8000"
-echo "TCP 8001"
+
+echo ""
+echo "--------------------"
+echo ""
+echo "URL de acesso: "
+echo ""
+echo http://$(curl -s checkip.amazonaws.com):3000
+echo ""
+
+# echo "TCP 3000"
+# echo "TCP 5000"
+# echo "TCP 8000"
+# echo "TCP 8001"
 
 
 echo
@@ -1152,22 +1161,22 @@ echo "Email: $TEST_EMAIL"
 echo "Senha: $TEST_PASSWORD"
 
 
-echo
-echo "Para acompanhar a UI:"
-echo
-echo "tail -f $BASE/ui.log"
+# echo
+# echo "Para acompanhar a UI:"
+# echo
+# echo "tail -f $BASE/ui.log"
 
 
-echo
-echo "Para acompanhar Customer Auth:"
-echo
-echo "tail -f $BASE/customer-auth.log"
+# echo
+# echo "Para acompanhar Customer Auth:"
+# echo
+# echo "tail -f $BASE/customer-auth.log"
 
 
-echo
-echo "Para acompanhar Dashboard:"
-echo
-echo "tail -f $BASE/dashboard.log"
+# echo
+# echo "Para acompanhar Dashboard:"
+# echo
+# echo "tail -f $BASE/dashboard.log"
 
 
 echo
