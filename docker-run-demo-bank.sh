@@ -178,29 +178,67 @@ echo "   Realm: ${SPLUNK_REALM:-<nao encontrado>}"
 # ==================================================
 
 echo
-echo "5. CONFIGURANDO LOGS (HEC)"
+echo "5. LOGS: VERIFICANDO O DESTINO"
 echo "=================================================="
 
-echo "O pipeline de logs do agent_config.yaml exporta via splunk_hec, que usa"
-echo "\${SPLUNK_HEC_TOKEN}. Sem esse token, NENHUM log chega ao Log Observer."
+echo "O pipeline de logs do agent_config.yaml exporta via splunk_hec para"
+echo "\$SPLUNK_HEC_URL. IMPORTANTE: o Splunk Observability Cloud NAO aceita"
+echo "mais ingestao direta de logs - o Log Observer nativo foi descontinuado"
+echo "em favor do Log Observer Connect, que le logs de um Splunk Cloud/"
+echo "Enterprise. O endpoint /v1/log responde 404 mesmo sem token."
 echo
+
+HEC_TESTE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+    -X POST "${SPLUNK_HEC_URL:-https://ingest.$SPLUNK_REALM.observability.splunkcloud.com/v1/log}" \
+    -H "Content-Type: application/json" -d '{}' 2>/dev/null || echo "000")
+
+echo "Teste do endpoint de logs: HTTP $HEC_TESTE"
 
 COLLECTOR_CHANGED=false
 
-if [ -z "$HEC_TOKEN" ]; then
+if [ "$HEC_TESTE" = "404" ]; then
 
-    if [ -z "$ACCESS_TOKEN" ]; then
+    echo
+    echo "⚠️ Confirmado: este endpoint nao aceita logs."
+    echo "   Os traces (APM) NAO sao afetados - usam outro pipeline."
+    echo
+    echo "   Deixando OTEL_LOGS_EXPORTER=none para evitar que o collector"
+    echo "   entre em retry infinito contra um endpoint morto."
 
-        echo "⚠️ SPLUNK_ACCESS_TOKEN vazio - nao da para deduzir o HEC token."
-        echo "   Preencha SPLUNK_HEC_TOKEN manualmente em:"
-        echo "   $COLLECTOR_CONF"
+    LOGS_EXPORTER="none"
 
-    else
+    # Se uma execucao anterior deste script preencheu o HEC token, limpamos:
+    # com ele preenchido o collector tenta entregar e falha em loop.
+    if [ -n "$HEC_TOKEN" ]; then
 
-        echo "🚀 SPLUNK_HEC_TOKEN esta vazio."
-        echo "   No Splunk Observability Cloud o HEC de logs usa o proprio"
-        echo "   access token da org, e SPLUNK_HEC_URL ja aponta para /v1/log."
-        echo "   Configurando SPLUNK_HEC_TOKEN = SPLUNK_ACCESS_TOKEN..."
+        echo
+        echo "🧹 Limpando SPLUNK_HEC_TOKEN (preenchido por uma execucao anterior)"
+
+        sudo cp "$COLLECTOR_CONF" "$COLLECTOR_CONF.bkp.$(date +%s)"
+
+        sudo sed -i "s|^SPLUNK_HEC_TOKEN=.*|SPLUNK_HEC_TOKEN=|" "$COLLECTOR_CONF"
+
+        COLLECTOR_CHANGED=true
+
+    fi
+
+    echo
+    echo "   Para demonstrar logs no Splunk, e' preciso um Splunk Cloud ou"
+    echo "   Enterprise recebendo por HEC, e ligar o Log Observer Connect."
+    echo "   Nesse caso, aponte SPLUNK_HEC_URL para ele e rode com:"
+    echo "     SPLUNK_HEC_URL=https://<host>:8088/services/collector \\"
+    echo "     SPLUNK_HEC_TOKEN=<token> ~/instalar_bank_docker.sh $MODE"
+
+else
+
+    echo
+    echo "✅ Endpoint de logs respondeu $HEC_TESTE - ingestao parece disponivel."
+
+    LOGS_EXPORTER="otlp"
+
+    if [ -z "$HEC_TOKEN" ] && [ -n "$ACCESS_TOKEN" ]; then
+
+        echo "🚀 Configurando SPLUNK_HEC_TOKEN..."
 
         sudo cp "$COLLECTOR_CONF" "$COLLECTOR_CONF.bkp.$(date +%s)"
 
@@ -208,15 +246,13 @@ if [ -z "$HEC_TOKEN" ]; then
 
         COLLECTOR_CHANGED=true
 
-        echo "✅ SPLUNK_HEC_TOKEN configurado."
-
     fi
 
-else
-
-    echo "✅ SPLUNK_HEC_TOKEN ja esta preenchido."
-
 fi
+
+echo
+echo "ℹ️ Independente disso, os logs continuam visiveis localmente:"
+echo "   docker compose -f $COMPOSE_FILE logs -f dashboard"
 
 
 # ==================================================
@@ -371,7 +407,7 @@ APP_VERSION=1.0.0
 SPLUNK_RUM_TOKEN=$SPLUNK_RUM_TOKEN
 SPLUNK_RUM_APP_NAME=martian-bank-ui
 
-OTEL_LOGS_EXPORTER=otlp
+OTEL_LOGS_EXPORTER=$LOGS_EXPORTER
 OTEL_METRICS_EXPORTER=none
 SPLUNK_PROFILER_ENABLED=false
 
@@ -599,9 +635,20 @@ test_service() {
             -o /dev/null \
             -w "%{http_code}" \
             --max-time 10 \
+            -L \
             "$URL" || true)
 
-        echo "HTTP Status: $HTTP_STATUS"
+        case "$HTTP_STATUS" in
+            200|201|204|301|302)
+                echo "HTTP Status: $HTTP_STATUS ✅"
+                ;;
+            000)
+                echo "HTTP Status: sem resposta ❌"
+                ;;
+            *)
+                echo "HTTP Status: $HTTP_STATUS ⚠️ (servico respondeu, mas nao com sucesso)"
+                ;;
+        esac
 
     else
 
@@ -611,9 +658,13 @@ test_service() {
 
 }
 
+# ATENCAO: os servicos Node nao tem rota em "/" - as rotas vivem em
+# /api/users e /api/atm. Bater na raiz devolve 404 e parece falha, mas e' o
+# Express respondendo normalmente. Usamos o Swagger UI (/docs), que existe
+# nos dois e devolve 200 - assim o teste valida o servico DE VERDADE.
 test_service 3000 "UI" "http://localhost:3000"
-test_service 8000 "CUSTOMER AUTH" "http://localhost:8000"
-test_service 8001 "ATM LOCATOR" "http://localhost:8001"
+test_service 8000 "CUSTOMER AUTH (swagger)" "http://localhost:8000/docs"
+test_service 8001 "ATM LOCATOR (swagger)" "http://localhost:8001/docs"
 test_service 5000 "DASHBOARD (BACKEND PYTHON)" "http://localhost:5000"
 
 
@@ -744,20 +795,51 @@ echo "=================================================="
 echo "18. GERANDO TELEMETRIA (TRACES + LOGS)"
 echo "=================================================="
 
-echo "Chamando o dashboard, que por sua vez chama accounts/transactions/loan."
-echo "E' esse encadeamento que produz o trace distribuido no APM."
+echo "Todas as chamadas passam pelo dashboard, que por sua vez chama os outros"
+echo "cinco servicos. E' esse encadeamento que produz o trace distribuido -"
+echo "no APM o service map deve mostrar os 6 servicos ligados ao dashboard."
+echo
+echo "Obs.: /account/allaccounts, /transaction/history e /loan/history leem"
+echo "request.form, entao vao como form-encoded (-F). /api/atm/ e /api/users/auth"
+echo "leem JSON. A barra final em /api/atm/ importa: sem ela o Flask responde"
+echo "308 e o POST nao chega ao atm-locator."
 echo
 
 for i in 1 2 3; do
 
+    echo "  --- rodada $i ---"
+
+    # dashboard -> accounts
     curl -s --max-time 10 \
         -X POST "http://localhost:5000/account/allaccounts" \
-        -H "Content-Type: application/json" \
-        -d "{\"email_id\": \"$TEST_EMAIL\"}" \
-        -o /dev/null -w "  POST /account/allaccounts -> HTTP %{http_code}\n" || true
+        -F "email_id=$TEST_EMAIL" \
+        -o /dev/null -w "  accounts      POST /account/allaccounts -> HTTP %{http_code}\n" || true
 
-    curl -s --max-time 10 "http://localhost:8001/api/atm" \
-        -o /dev/null -w "  GET  /api/atm             -> HTTP %{http_code}\n" || true
+    # dashboard -> transactions
+    curl -s --max-time 10 \
+        -X POST "http://localhost:5000/transaction/history" \
+        -F "account_number=0" \
+        -o /dev/null -w "  transactions  POST /transaction/history -> HTTP %{http_code}\n" || true
+
+    # dashboard -> loan
+    curl -s --max-time 10 \
+        -X POST "http://localhost:5000/loan/history" \
+        -F "email=$TEST_EMAIL" \
+        -o /dev/null -w "  loan          POST /loan/history        -> HTTP %{http_code}\n" || true
+
+    # dashboard -> atm-locator (Node)
+    curl -s --max-time 10 \
+        -X POST "http://localhost:5000/api/atm/" \
+        -H "Content-Type: application/json" \
+        -d '{"isOpenNow": false, "isInterPlanetary": false}' \
+        -o /dev/null -w "  atm-locator   POST /api/atm/            -> HTTP %{http_code}\n" || true
+
+    # dashboard -> customer-auth (Node)
+    curl -s --max-time 10 \
+        -X POST "http://localhost:5000/api/users/auth" \
+        -H "Content-Type: application/json" \
+        -d "{\"email\": \"$TEST_EMAIL\", \"password\": \"$TEST_PASSWORD\"}" \
+        -o /dev/null -w "  customer-auth POST /api/users/auth      -> HTTP %{http_code}\n" || true
 
     sleep 2
 
@@ -829,12 +911,13 @@ if [ -n "$IP" ]; then
     echo "URL de acesso:"
     echo
     echo "http://$IP:3000"
-    echo
-    echo "APIs:"
-    echo "Customer Auth: http://$IP:8000"
-    echo "ATM Locator:   http://$IP:8001"
-    echo "Dashboard:     http://$IP:5000"
-    echo "Nginx:         http://$IP:8080"
+    # URLs das APIs - descomente se quiser exibi-las
+    # echo
+    # echo "APIs:"
+    # echo "Customer Auth: http://$IP:8000        (swagger em /docs)"
+    # echo "ATM Locator:   http://$IP:8001        (swagger em /docs)"
+    # echo "Dashboard:     http://$IP:5000"
+    # echo "Nginx:         http://$IP:8080"
 
 else
 
@@ -850,40 +933,44 @@ echo "Email: $TEST_EMAIL"
 echo "Senha: $TEST_PASSWORD"
 
 echo
-echo "--------------------------------------------------"
-echo "ONDE OLHAR NO SPLUNK"
-echo "--------------------------------------------------"
-echo
-echo "APM   > Services        (filtre Environment = $DEPLOYMENT_ENV)"
-echo "        dashboard, accounts, transactions, loan,"
-echo "        customer-auth, atm-locator"
-echo
-echo "Log Observer            (filtre service.name ou deployment.environment)"
-echo "        Python: logs via OTLP, com trace_id/span_id -> Related Content"
-echo "        Node/nginx/UI: stdout via log driver fluentd"
-echo
-if [ -n "$SPLUNK_RUM_TOKEN" ]; then
-echo "RUM   > Browser         aplicacao martian-bank-ui"
-else
-echo "RUM                     desabilitado (SPLUNK_RUM_TOKEN vazio)"
-fi
+# ------------------------------------------------------------------
+# Blocos "ONDE OLHAR NO SPLUNK" e "COMANDOS UTEIS" comentados.
+# Descomente se quiser a saida completa no fim da execucao.
+# ------------------------------------------------------------------
+# echo "--------------------------------------------------"
+# echo "ONDE OLHAR NO SPLUNK"
+# echo "--------------------------------------------------"
+# echo
+# echo "APM   > Services        (filtre Environment = $DEPLOYMENT_ENV)"
+# echo "        dashboard, accounts, transactions, loan,"
+# echo "        customer-auth, atm-locator"
+# echo
+# echo "Log Observer            (filtre service.name ou deployment.environment)"
+# echo "        Python: logs via OTLP, com trace_id/span_id -> Related Content"
+# echo "        Node/nginx/UI: stdout via log driver fluentd"
+# echo
+# if [ -n "$SPLUNK_RUM_TOKEN" ]; then
+# echo "RUM   > Browser         aplicacao martian-bank-ui"
+# else
+# echo "RUM                     desabilitado (SPLUNK_RUM_TOKEN vazio)"
+# fi
 
-echo
-echo "--------------------------------------------------"
-echo "COMANDOS UTEIS"
-echo "--------------------------------------------------"
-echo
-echo "cd $BASE"
-echo
-echo "# logs de um servico (funciona mesmo com o driver fluentd)"
-echo "docker compose -f $COMPOSE_FILE logs -f dashboard"
-echo
-echo "# parar tudo"
-echo "docker compose -f $COMPOSE_FILE down"
-echo
-echo "# trocar de variante de rede"
-echo "~/instalar_bank_docker.sh host"
-echo "~/instalar_bank_docker.sh bridge"
+# echo
+# echo "--------------------------------------------------"
+# echo "COMANDOS UTEIS"
+# echo "--------------------------------------------------"
+# echo
+# echo "cd $BASE"
+# echo
+# echo "# logs de um servico (funciona mesmo com o driver fluentd)"
+# echo "docker compose -f $COMPOSE_FILE logs -f dashboard"
+# echo
+# echo "# parar tudo"
+# echo "docker compose -f $COMPOSE_FILE down"
+# echo
+# echo "# trocar de variante de rede"
+# echo "~/instalar_bank_docker.sh host"
+# echo "~/instalar_bank_docker.sh bridge"
 echo
 echo "=================================================="
 

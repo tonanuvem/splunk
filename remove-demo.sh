@@ -201,7 +201,7 @@ else
     echo "3b. Projetos do compose por nome"
     echo "--------------------------------------------------"
 
-    for PROJETO in martianbank-otel-host martianbank-otel-hg
+    for PROJETO in fiapbank-otel-host fiapbank-otel-hg
     do
 
         ATIVOS=$(docker compose -p "$PROJETO" ps -aq 2>/dev/null)
@@ -258,7 +258,7 @@ else
     echo "--------------------------------------------------"
 
     REDES=$(docker network ls --format '{{.Name}}' 2>/dev/null \
-        | grep -E '^martianbank-otel-(host|hg)_|bankapp-network$')
+        | grep -E '^fiapbank-otel-(host|hg)_|bankapp-network$')
 
     if [ -n "$REDES" ]; then
 
