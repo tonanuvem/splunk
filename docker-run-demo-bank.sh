@@ -127,7 +127,33 @@ else
     cd "$BASE"
 
     echo "🔄 Atualizando repositorio..."
-    git pull --ff-only || true
+
+    # A secao 7 reescreve ui/src/slices/apiUrls.js. Se um commit novo tocar
+    # esse arquivo, o `git pull --ff-only` aborta ("local changes would be
+    # overwritten") e, com um `|| true`, o erro passaria despercebido: a EC2
+    # ficaria presa numa versao antiga sem ninguem notar. Descartamos primeiro
+    # as alteracoes que o proprio script fez - ele as reaplica adiante.
+    git checkout -- ui/src/slices/apiUrls.js 2>/dev/null || true
+
+    if git pull --ff-only; then
+
+        echo "✅ Repositorio atualizado:"
+        git log --oneline -1
+
+    else
+
+        echo
+        echo "⚠️ NAO FOI POSSIVEL ATUALIZAR O REPOSITORIO."
+        echo "   A EC2 vai rodar com a versao que ja estava aqui:"
+        git log --oneline -1
+        echo
+        echo "   Alteracoes locais em conflito:"
+        git status --short
+        echo
+        echo "   Para forcar a versao do GitHub (descarta o que esta local):"
+        echo "     cd $BASE && git fetch origin && git reset --hard origin/main"
+
+    fi
 
 fi
 
