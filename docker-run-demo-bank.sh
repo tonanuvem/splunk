@@ -637,6 +637,19 @@ sleep 20
 
 
 # ==================================================
+# A PARTIR DAQUI: VERIFICACOES
+#
+# O `set -e` do topo protege a instalacao (clone, build, up), onde falhar no
+# meio e' pior do que parar. Mas daqui para baixo sao checagens, e uma delas
+# falhando NAO pode derrubar o script: a stack ja esta no ar. Sem isso, um
+# simples timeout de curl numa atribuicao (`VAR=$(curl ...)`) encerra tudo em
+# silencio, sem nem imprimir o resumo final.
+# ==================================================
+
+set +e
+
+
+# ==================================================
 # 13. CONTAINERS
 # ==================================================
 
@@ -801,8 +814,11 @@ if [ "$AUTH_READY" = "true" ]; then
     echo
     echo "Tentando criar usuario..."
 
+    # 30s e nao 10s: no primeiro cadastro o Node ainda esta esquentando, o
+    # mongoose abre a conexao e o bcrypt gera o hash. Numa EC2 modesta os 10s
+    # originais estouravam.
     REGISTER_RESPONSE=$(curl -s \
-        --max-time 10 \
+        --max-time 30 \
         -X POST \
         "http://localhost:8000/api/users/" \
         -H "Content-Type: application/json" \
@@ -811,6 +827,18 @@ if [ "$AUTH_READY" = "true" ]; then
             \"email\": \"$TEST_EMAIL\",
             \"password\": \"$TEST_PASSWORD\"
         }")
+    CURL_RC=$?
+
+    if [ "$CURL_RC" -ne 0 ]; then
+        echo
+        echo "⚠️ O curl falhou (codigo $CURL_RC)."
+        case "$CURL_RC" in
+            28) echo "   Timeout: o customer-auth demorou demais para responder." ;;
+            7)  echo "   Conexao recusada: o customer-auth nao esta ouvindo na 8000." ;;
+        esac
+        echo "   Veja: docker compose -f $COMPOSE_FILE logs --tail 30 customer-auth"
+        echo "   O usuario pode ser criado depois pela propria tela de cadastro."
+    fi
 
     echo
     echo "Resposta:"
