@@ -195,6 +195,10 @@ systemctl is-active splunk-otel-collector
 SPLUNK_REALM=$(sudo grep -E '^SPLUNK_REALM=' "$COLLECTOR_CONF" | cut -d= -f2- | tr -d '"' || true)
 ACCESS_TOKEN=$(sudo grep -E '^SPLUNK_ACCESS_TOKEN=' "$COLLECTOR_CONF" | cut -d= -f2- | tr -d '"' || true)
 HEC_TOKEN=$(sudo grep -E '^SPLUNK_HEC_TOKEN=' "$COLLECTOR_CONF" | cut -d= -f2- | tr -d '"' || true)
+# Faltava ler a URL: sem isso o teste da secao 5 caia no endpoint padrao do
+# Observability (morto) mesmo quando o collector ja apontava para um Splunk
+# Enterprise local, e os logs ficavam desligados a toa.
+HEC_URL=$(sudo grep -E '^SPLUNK_HEC_URL=' "$COLLECTOR_CONF" | cut -d= -f2- | tr -d '"' || true)
 
 echo "   Realm: ${SPLUNK_REALM:-<nao encontrado>}"
 
@@ -214,15 +218,48 @@ echo "em favor do Log Observer Connect, que le logs de um Splunk Cloud/"
 echo "Enterprise. O endpoint /v1/log responde 404 mesmo sem token."
 echo
 
-HEC_TESTE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
-    -X POST "${SPLUNK_HEC_URL:-https://ingest.$SPLUNK_REALM.observability.splunkcloud.com/v1/log}" \
-    -H "Content-Type: application/json" -d '{}' 2>/dev/null || echo "000")
+ALVO_HEC="${SPLUNK_HEC_URL:-${HEC_URL:-https://ingest.$SPLUNK_REALM.observability.splunkcloud.com/v1/log}}"
+TOKEN_HEC="${SPLUNK_HEC_TOKEN:-$HEC_TOKEN}"
 
-echo "Teste do endpoint de logs: HTTP $HEC_TESTE"
+echo "Destino configurado no collector:"
+echo "  $ALVO_HEC"
+echo
+
+if [ -n "$TOKEN_HEC" ]; then
+
+    # Com token da' para provar o caminho inteiro, e nao so' se a URL existe:
+    # um "code":0 significa que o Splunk aceitou o evento de verdade.
+    RESP_HEC=$(curl -s -k --max-time 15 -X POST "$ALVO_HEC" \
+        -H "Authorization: Splunk $TOKEN_HEC" \
+        -d '{"event":"teste do instalador do FIAP Bank"}' 2>/dev/null)
+
+    HEC_TESTE=$(curl -s -k -o /dev/null -w "%{http_code}" --max-time 15 -X POST "$ALVO_HEC" \
+        -H "Authorization: Splunk $TOKEN_HEC" \
+        -d '{"event":"teste do instalador do FIAP Bank"}' 2>/dev/null || echo "000")
+
+else
+
+    RESP_HEC=""
+    HEC_TESTE=$(curl -s -k -o /dev/null -w "%{http_code}" --max-time 10 \
+        -X POST "$ALVO_HEC" -H "Content-Type: application/json" -d '{}' 2>/dev/null || echo "000")
+
+fi
+
+echo "Teste do endpoint de logs: HTTP $HEC_TESTE ${RESP_HEC:+- $RESP_HEC}"
 
 COLLECTOR_CHANGED=false
 
-if [ "$HEC_TESTE" = "404" ]; then
+if echo "$RESP_HEC" | grep -q '"code":0'; then
+
+    echo
+    echo "✅ O Splunk ACEITOU o evento de teste."
+    echo "   Ligando OTEL_LOGS_EXPORTER=otlp: os logs das apps Python vao"
+    echo "   sair com trace_id e span_id, correlacionados com o APM."
+
+    LOGS_EXPORTER="otlp"
+    COLLECTOR_CHANGED=false
+
+elif [ "$HEC_TESTE" = "404" ]; then
 
     echo
     echo "⚠️ Confirmado: este endpoint nao aceita logs."
