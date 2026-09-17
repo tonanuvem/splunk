@@ -16,6 +16,21 @@ receiver, não de memória. Se algum gráfico vier vazio, confirme o nome exato 
 Os filtros cobrem os dois prefixos de projeto (`fiapbank-otel-*` é o atual,
 `martianbank-otel-*` é o antigo), então funcionam antes e depois do rename.
 
+## Atalho: importar o dashboard pronto
+
+Em vez de montar os oito gráficos na mão, importe
+[`dashboard_FIAP_Bank_Containers.json`](dashboard_FIAP_Bank_Containers.json):
+
+**Dashboards → ⋮ → Import dashboard → Select file →** dê um nome **→ Import**
+
+O arquivo foi gerado a partir de um export real da própria org (o
+`dashboard_Conteineres.json`), então o schema é o que o Splunk espera — e não um
+palpite. Os ids internos foram trocados por novos de propósito, para o import
+criar objetos novos em vez de arriscar sobrescrever um dashboard existente.
+
+Se preferir entender o que cada gráfico faz antes de importar, o SignalFlow de
+cada um está abaixo.
+
 ---
 
 ## 1. CPU por container (%)

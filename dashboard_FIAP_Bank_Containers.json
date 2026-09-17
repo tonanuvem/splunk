@@ -1,0 +1,857 @@
+{
+ "chartExports": [
+  {
+   "chart": {
+    "autoDetectRelatedDetectorIds": [],
+    "chartLinks": [],
+    "created": 0,
+    "creator": null,
+    "customProperties": {},
+    "description": "",
+    "id": "FIAPqNHEasV",
+    "lastUpdated": 0,
+    "lastUpdatedBy": null,
+    "name": "CPU por container (%)",
+    "options": {
+     "areaChartOptions": {
+      "showDataMarkers": false
+     },
+     "axes": [
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": 100,
+       "min": 0
+      },
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": null,
+       "min": null
+      }
+     ],
+     "axisPrecision": null,
+     "colorBy": "Dimension",
+     "defaultPlotType": "LineChart",
+     "eventPublishLabelOptions": [],
+     "histogramChartOptions": {
+      "colorThemeIndex": 16
+     },
+     "includeZero": false,
+     "legendOptions": {
+      "fields": null
+     },
+     "lineChartOptions": {
+      "showDataMarkers": false
+     },
+     "noDataOptions": {
+      "linkText": null,
+      "linkUrl": null,
+      "noDataMessage": null
+     },
+     "onChartLegendOptions": {
+      "dimensionInLegend": "container.name",
+      "showLegend": true
+     },
+     "programOptions": {
+      "disableSampling": false,
+      "maxDelay": null,
+      "minimumResolution": 0,
+      "timezone": null
+     },
+     "publishLabelOptions": [
+      {
+       "displayName": "CPU %",
+       "label": "A",
+       "paletteIndex": null,
+       "plotType": null,
+       "valuePrefix": null,
+       "valueSuffix": null,
+       "valueUnit": null,
+       "yAxis": 0
+      }
+     ],
+     "showEventLines": false,
+     "stacked": false,
+     "time": {
+      "range": 900000,
+      "rangeEnd": 0,
+      "type": "relative"
+     },
+     "type": "TimeSeriesChart",
+     "unitPrefix": "Metric"
+    },
+    "packageSpecifications": "",
+    "programText": "A = data('container.cpu.utilization', filter=filter('container.name', 'fiapbank-otel-*', 'martianbank-otel-*')).mean(by=['container.name']).publish(label='A')",
+    "relatedDetectorIds": [],
+    "tags": []
+   }
+  },
+  {
+   "chart": {
+    "autoDetectRelatedDetectorIds": [],
+    "chartLinks": [],
+    "created": 0,
+    "creator": null,
+    "customProperties": {},
+    "description": "",
+    "id": "FIAPQAB9YcV",
+    "lastUpdated": 0,
+    "lastUpdatedBy": null,
+    "name": "Memoria por container (%)",
+    "options": {
+     "areaChartOptions": {
+      "showDataMarkers": false
+     },
+     "axes": [
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": 100,
+       "min": 0
+      },
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": null,
+       "min": null
+      }
+     ],
+     "axisPrecision": null,
+     "colorBy": "Dimension",
+     "defaultPlotType": "LineChart",
+     "eventPublishLabelOptions": [],
+     "histogramChartOptions": {
+      "colorThemeIndex": 16
+     },
+     "includeZero": false,
+     "legendOptions": {
+      "fields": null
+     },
+     "lineChartOptions": {
+      "showDataMarkers": false
+     },
+     "noDataOptions": {
+      "linkText": null,
+      "linkUrl": null,
+      "noDataMessage": null
+     },
+     "onChartLegendOptions": {
+      "dimensionInLegend": "container.name",
+      "showLegend": true
+     },
+     "programOptions": {
+      "disableSampling": false,
+      "maxDelay": null,
+      "minimumResolution": 0,
+      "timezone": null
+     },
+     "publishLabelOptions": [
+      {
+       "displayName": "Memoria %",
+       "label": "A",
+       "paletteIndex": null,
+       "plotType": null,
+       "valuePrefix": null,
+       "valueSuffix": null,
+       "valueUnit": null,
+       "yAxis": 0
+      }
+     ],
+     "showEventLines": false,
+     "stacked": false,
+     "time": {
+      "range": 900000,
+      "rangeEnd": 0,
+      "type": "relative"
+     },
+     "type": "TimeSeriesChart",
+     "unitPrefix": "Metric"
+    },
+    "packageSpecifications": "",
+    "programText": "A = data('container.memory.percent', filter=filter('container.name', 'fiapbank-otel-*', 'martianbank-otel-*')).mean(by=['container.name']).publish(label='A')",
+    "relatedDetectorIds": [],
+    "tags": []
+   }
+  },
+  {
+   "chart": {
+    "autoDetectRelatedDetectorIds": [],
+    "chartLinks": [],
+    "created": 0,
+    "creator": null,
+    "customProperties": {},
+    "description": "",
+    "id": "FIAPftpLd-a",
+    "lastUpdated": 0,
+    "lastUpdatedBy": null,
+    "name": "Memoria por container (MB)",
+    "options": {
+     "areaChartOptions": {
+      "showDataMarkers": false
+     },
+     "axes": [
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": null,
+       "min": 0
+      },
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": null,
+       "min": null
+      }
+     ],
+     "axisPrecision": null,
+     "colorBy": "Dimension",
+     "defaultPlotType": "LineChart",
+     "eventPublishLabelOptions": [],
+     "histogramChartOptions": {
+      "colorThemeIndex": 16
+     },
+     "includeZero": false,
+     "legendOptions": {
+      "fields": null
+     },
+     "lineChartOptions": {
+      "showDataMarkers": false
+     },
+     "noDataOptions": {
+      "linkText": null,
+      "linkUrl": null,
+      "noDataMessage": null
+     },
+     "onChartLegendOptions": {
+      "dimensionInLegend": "container.name",
+      "showLegend": true
+     },
+     "programOptions": {
+      "disableSampling": false,
+      "maxDelay": null,
+      "minimumResolution": 0,
+      "timezone": null
+     },
+     "publishLabelOptions": [
+      {
+       "displayName": "Memoria (MB)",
+       "label": "A",
+       "paletteIndex": null,
+       "plotType": null,
+       "valuePrefix": null,
+       "valueSuffix": null,
+       "valueUnit": null,
+       "yAxis": 0
+      }
+     ],
+     "showEventLines": false,
+     "stacked": false,
+     "time": {
+      "range": 900000,
+      "rangeEnd": 0,
+      "type": "relative"
+     },
+     "type": "TimeSeriesChart",
+     "unitPrefix": "Metric"
+    },
+    "packageSpecifications": "",
+    "programText": "A = data('container.memory.usage.total', filter=filter('container.name', 'fiapbank-otel-*', 'martianbank-otel-*')).mean(by=['container.name']).scale(1/1048576).publish(label='A')",
+    "relatedDetectorIds": [],
+    "tags": []
+   }
+  },
+  {
+   "chart": {
+    "autoDetectRelatedDetectorIds": [],
+    "chartLinks": [],
+    "created": 0,
+    "creator": null,
+    "customProperties": {},
+    "description": "",
+    "id": "FIAP-uSGCz1",
+    "lastUpdated": 0,
+    "lastUpdatedBy": null,
+    "name": "Memoria usada x limite (MB)",
+    "options": {
+     "areaChartOptions": {
+      "showDataMarkers": false
+     },
+     "axes": [
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": null,
+       "min": 0
+      },
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": null,
+       "min": null
+      }
+     ],
+     "axisPrecision": null,
+     "colorBy": "Dimension",
+     "defaultPlotType": "LineChart",
+     "eventPublishLabelOptions": [],
+     "histogramChartOptions": {
+      "colorThemeIndex": 16
+     },
+     "includeZero": false,
+     "legendOptions": {
+      "fields": null
+     },
+     "lineChartOptions": {
+      "showDataMarkers": false
+     },
+     "noDataOptions": {
+      "linkText": null,
+      "linkUrl": null,
+      "noDataMessage": null
+     },
+     "onChartLegendOptions": {
+      "dimensionInLegend": "container.name",
+      "showLegend": true
+     },
+     "programOptions": {
+      "disableSampling": false,
+      "maxDelay": null,
+      "minimumResolution": 0,
+      "timezone": null
+     },
+     "publishLabelOptions": [
+      {
+       "displayName": "Usada (MB)",
+       "label": "A",
+       "paletteIndex": null,
+       "plotType": null,
+       "valuePrefix": null,
+       "valueSuffix": null,
+       "valueUnit": null,
+       "yAxis": 0
+      },
+      {
+       "displayName": "Limite (MB)",
+       "label": "B",
+       "paletteIndex": null,
+       "plotType": null,
+       "valuePrefix": null,
+       "valueSuffix": null,
+       "valueUnit": null,
+       "yAxis": 0
+      }
+     ],
+     "showEventLines": false,
+     "stacked": false,
+     "time": {
+      "range": 900000,
+      "rangeEnd": 0,
+      "type": "relative"
+     },
+     "type": "TimeSeriesChart",
+     "unitPrefix": "Metric"
+    },
+    "packageSpecifications": "",
+    "programText": "A = data('container.memory.usage.total', filter=filter('container.name', 'fiapbank-otel-*', 'martianbank-otel-*')).mean(by=['container.name']).scale(1/1048576).publish(label='A')\nB = data('container.memory.usage.limit', filter=filter('container.name', 'fiapbank-otel-*', 'martianbank-otel-*')).mean(by=['container.name']).scale(1/1048576).publish(label='B')",
+    "relatedDetectorIds": [],
+    "tags": []
+   }
+  },
+  {
+   "chart": {
+    "autoDetectRelatedDetectorIds": [],
+    "chartLinks": [],
+    "created": 0,
+    "creator": null,
+    "customProperties": {},
+    "description": "",
+    "id": "FIAP7zfXEBO",
+    "lastUpdated": 0,
+    "lastUpdatedBy": null,
+    "name": "Rede - RX e TX (bytes/s)",
+    "options": {
+     "areaChartOptions": {
+      "showDataMarkers": false
+     },
+     "axes": [
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": null,
+       "min": 0
+      },
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": null,
+       "min": null
+      }
+     ],
+     "axisPrecision": null,
+     "colorBy": "Dimension",
+     "defaultPlotType": "LineChart",
+     "eventPublishLabelOptions": [],
+     "histogramChartOptions": {
+      "colorThemeIndex": 16
+     },
+     "includeZero": false,
+     "legendOptions": {
+      "fields": null
+     },
+     "lineChartOptions": {
+      "showDataMarkers": false
+     },
+     "noDataOptions": {
+      "linkText": null,
+      "linkUrl": null,
+      "noDataMessage": null
+     },
+     "onChartLegendOptions": {
+      "dimensionInLegend": "container.name",
+      "showLegend": true
+     },
+     "programOptions": {
+      "disableSampling": false,
+      "maxDelay": null,
+      "minimumResolution": 0,
+      "timezone": null
+     },
+     "publishLabelOptions": [
+      {
+       "displayName": "RX B/s",
+       "label": "A",
+       "paletteIndex": null,
+       "plotType": null,
+       "valuePrefix": null,
+       "valueSuffix": null,
+       "valueUnit": null,
+       "yAxis": 0
+      },
+      {
+       "displayName": "TX B/s",
+       "label": "B",
+       "paletteIndex": null,
+       "plotType": null,
+       "valuePrefix": null,
+       "valueSuffix": null,
+       "valueUnit": null,
+       "yAxis": 0
+      }
+     ],
+     "showEventLines": false,
+     "stacked": false,
+     "time": {
+      "range": 900000,
+      "rangeEnd": 0,
+      "type": "relative"
+     },
+     "type": "TimeSeriesChart",
+     "unitPrefix": "Metric"
+    },
+    "packageSpecifications": "",
+    "programText": "A = data('container.network.io.usage.rx_bytes', rollup='rate', filter=filter('container.name', 'fiapbank-otel-*', 'martianbank-otel-*')).sum(by=['container.name']).publish(label='A')\nB = data('container.network.io.usage.tx_bytes', rollup='rate', filter=filter('container.name', 'fiapbank-otel-*', 'martianbank-otel-*')).sum(by=['container.name']).publish(label='B')",
+    "relatedDetectorIds": [],
+    "tags": []
+   }
+  },
+  {
+   "chart": {
+    "autoDetectRelatedDetectorIds": [],
+    "chartLinks": [],
+    "created": 0,
+    "creator": null,
+    "customProperties": {},
+    "description": "",
+    "id": "FIAPNn-enhJ",
+    "lastUpdated": 0,
+    "lastUpdatedBy": null,
+    "name": "Disco - I/O por container (bytes/s)",
+    "options": {
+     "areaChartOptions": {
+      "showDataMarkers": false
+     },
+     "axes": [
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": null,
+       "min": 0
+      },
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": null,
+       "min": null
+      }
+     ],
+     "axisPrecision": null,
+     "colorBy": "Dimension",
+     "defaultPlotType": "LineChart",
+     "eventPublishLabelOptions": [],
+     "histogramChartOptions": {
+      "colorThemeIndex": 16
+     },
+     "includeZero": false,
+     "legendOptions": {
+      "fields": null
+     },
+     "lineChartOptions": {
+      "showDataMarkers": false
+     },
+     "noDataOptions": {
+      "linkText": null,
+      "linkUrl": null,
+      "noDataMessage": null
+     },
+     "onChartLegendOptions": {
+      "dimensionInLegend": "container.name",
+      "showLegend": true
+     },
+     "programOptions": {
+      "disableSampling": false,
+      "maxDelay": null,
+      "minimumResolution": 0,
+      "timezone": null
+     },
+     "publishLabelOptions": [
+      {
+       "displayName": "Disco B/s",
+       "label": "A",
+       "paletteIndex": null,
+       "plotType": null,
+       "valuePrefix": null,
+       "valueSuffix": null,
+       "valueUnit": null,
+       "yAxis": 0
+      }
+     ],
+     "showEventLines": false,
+     "stacked": false,
+     "time": {
+      "range": 900000,
+      "rangeEnd": 0,
+      "type": "relative"
+     },
+     "type": "TimeSeriesChart",
+     "unitPrefix": "Metric"
+    },
+    "packageSpecifications": "",
+    "programText": "A = data('container.blockio.io_service_bytes_recursive', rollup='rate', filter=filter('container.name', 'fiapbank-otel-*', 'martianbank-otel-*')).sum(by=['container.name']).publish(label='A')",
+    "relatedDetectorIds": [],
+    "tags": []
+   }
+  },
+  {
+   "chart": {
+    "autoDetectRelatedDetectorIds": [],
+    "chartLinks": [],
+    "created": 0,
+    "creator": null,
+    "customProperties": {},
+    "description": "",
+    "id": "FIAPdImA48q",
+    "lastUpdated": 0,
+    "lastUpdatedBy": null,
+    "name": "CPU da EC2 (host)",
+    "options": {
+     "areaChartOptions": {
+      "showDataMarkers": false
+     },
+     "axes": [
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": 100,
+       "min": 0
+      },
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": null,
+       "min": null
+      }
+     ],
+     "axisPrecision": null,
+     "colorBy": "Dimension",
+     "defaultPlotType": "LineChart",
+     "eventPublishLabelOptions": [],
+     "histogramChartOptions": {
+      "colorThemeIndex": 16
+     },
+     "includeZero": false,
+     "legendOptions": {
+      "fields": null
+     },
+     "lineChartOptions": {
+      "showDataMarkers": false
+     },
+     "noDataOptions": {
+      "linkText": null,
+      "linkUrl": null,
+      "noDataMessage": null
+     },
+     "onChartLegendOptions": {
+      "dimensionInLegend": "host.name",
+      "showLegend": true
+     },
+     "programOptions": {
+      "disableSampling": false,
+      "maxDelay": null,
+      "minimumResolution": 0,
+      "timezone": null
+     },
+     "publishLabelOptions": [
+      {
+       "displayName": "CPU do host %",
+       "label": "A",
+       "paletteIndex": null,
+       "plotType": null,
+       "valuePrefix": null,
+       "valueSuffix": null,
+       "valueUnit": null,
+       "yAxis": 0
+      }
+     ],
+     "showEventLines": false,
+     "stacked": false,
+     "time": {
+      "range": 900000,
+      "rangeEnd": 0,
+      "type": "relative"
+     },
+     "type": "TimeSeriesChart",
+     "unitPrefix": "Metric"
+    },
+    "packageSpecifications": "",
+    "programText": "A = data('cpu.utilization').mean(by=['host.name']).publish(label='A')",
+    "relatedDetectorIds": [],
+    "tags": []
+   }
+  },
+  {
+   "chart": {
+    "autoDetectRelatedDetectorIds": [],
+    "chartLinks": [],
+    "created": 0,
+    "creator": null,
+    "customProperties": {},
+    "description": "",
+    "id": "FIAPJaM_oku",
+    "lastUpdated": 0,
+    "lastUpdatedBy": null,
+    "name": "Memoria da EC2 (host)",
+    "options": {
+     "areaChartOptions": {
+      "showDataMarkers": false
+     },
+     "axes": [
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": 100,
+       "min": 0
+      },
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": null,
+       "min": null
+      }
+     ],
+     "axisPrecision": null,
+     "colorBy": "Dimension",
+     "defaultPlotType": "LineChart",
+     "eventPublishLabelOptions": [],
+     "histogramChartOptions": {
+      "colorThemeIndex": 16
+     },
+     "includeZero": false,
+     "legendOptions": {
+      "fields": null
+     },
+     "lineChartOptions": {
+      "showDataMarkers": false
+     },
+     "noDataOptions": {
+      "linkText": null,
+      "linkUrl": null,
+      "noDataMessage": null
+     },
+     "onChartLegendOptions": {
+      "dimensionInLegend": "host.name",
+      "showLegend": true
+     },
+     "programOptions": {
+      "disableSampling": false,
+      "maxDelay": null,
+      "minimumResolution": 0,
+      "timezone": null
+     },
+     "publishLabelOptions": [
+      {
+       "displayName": "Memoria do host %",
+       "label": "A",
+       "paletteIndex": null,
+       "plotType": null,
+       "valuePrefix": null,
+       "valueSuffix": null,
+       "valueUnit": null,
+       "yAxis": 0
+      }
+     ],
+     "showEventLines": false,
+     "stacked": false,
+     "time": {
+      "range": 900000,
+      "rangeEnd": 0,
+      "type": "relative"
+     },
+     "type": "TimeSeriesChart",
+     "unitPrefix": "Metric"
+    },
+    "packageSpecifications": "",
+    "programText": "A = data('memory.utilization').mean(by=['host.name']).publish(label='A')",
+    "relatedDetectorIds": [],
+    "tags": []
+   }
+  }
+ ],
+ "dashboardExport": {
+  "dashboard": {
+   "authorizedWriters": null,
+   "chartDensity": "DEFAULT",
+   "charts": [
+    {
+     "chartId": "FIAPqNHEasV",
+     "column": 0,
+     "height": 1,
+     "row": 0,
+     "width": 6
+    },
+    {
+     "chartId": "FIAPQAB9YcV",
+     "column": 6,
+     "height": 1,
+     "row": 0,
+     "width": 6
+    },
+    {
+     "chartId": "FIAPftpLd-a",
+     "column": 0,
+     "height": 1,
+     "row": 1,
+     "width": 6
+    },
+    {
+     "chartId": "FIAP-uSGCz1",
+     "column": 6,
+     "height": 1,
+     "row": 1,
+     "width": 6
+    },
+    {
+     "chartId": "FIAP7zfXEBO",
+     "column": 0,
+     "height": 1,
+     "row": 2,
+     "width": 6
+    },
+    {
+     "chartId": "FIAPNn-enhJ",
+     "column": 6,
+     "height": 1,
+     "row": 2,
+     "width": 6
+    },
+    {
+     "chartId": "FIAPdImA48q",
+     "column": 0,
+     "height": 1,
+     "row": 3,
+     "width": 6
+    },
+    {
+     "chartId": "FIAPJaM_oku",
+     "column": 6,
+     "height": 1,
+     "row": 3,
+     "width": 6
+    }
+   ],
+   "created": 0,
+   "creator": null,
+   "customProperties": null,
+   "description": "CPU, memoria, rede e disco por container (docker_stats) e da EC2 (host_metrics).",
+   "discoveryOptions": null,
+   "eventOverlays": null,
+   "filters": {
+    "sources": [],
+    "time": null,
+    "variables": []
+   },
+   "groupId": "FIAPbankGrp",
+   "groupName": "FIAP Bank",
+   "id": "FIAPbankDas",
+   "lastUpdated": 0,
+   "lastUpdatedBy": null,
+   "maxDelayOverride": null,
+   "name": "FIAP Bank - Containers e Host",
+   "permissions": null,
+   "selectedEventOverlays": null,
+   "tags": []
+  }
+ },
+ "hashCode": 2020975246,
+ "id": "FIAPbankDas",
+ "modelVersion": 1,
+ "packageType": "DASHBOARD"
+}
