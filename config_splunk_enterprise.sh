@@ -272,10 +272,25 @@ fi
 echo
 echo "[7/8] Recebimento na $PORTA_S2S (Universal Forwarder)"
 
-docker exec "$CONTAINER" /opt/splunk/bin/splunk enable listen 9997 \
-    -auth "admin:$SPLUNK_ADMIN_PASS" >/dev/null 2>&1 \
-    && echo "  [OK] indexador escutando em 9997" \
-    || echo "  [INFO] ja estava habilitado (ou exige ajuste manual)"
+# O `docker exec` entra como o usuario `ansible`, mas o splunkd roda como
+# `splunk` - sem o -u o CLI falha com "Pid file unreadable: Permission denied".
+SAIDA_LISTEN=$(docker exec -u splunk "$CONTAINER" /opt/splunk/bin/splunk enable listen 9997 \
+    -auth "admin:$SPLUNK_ADMIN_PASS" 2>&1)
+
+if echo "$SAIDA_LISTEN" | grep -qi "already exists"; then
+    echo "  [OK] recebimento na 9997 ja estava configurado"
+elif echo "$SAIDA_LISTEN" | grep -qi "permission denied"; then
+    echo "  [ERRO] permissao negada ao configurar a 9997:"
+    echo "$SAIDA_LISTEN" | grep -i "permission" | head -2
+else
+    echo "  [OK] recebimento habilitado na 9997"
+fi
+
+# Confirma o estado real em vez de confiar na saida do comando acima.
+ESTADO=$(docker exec -u splunk "$CONTAINER" /opt/splunk/bin/splunk display listen \
+    -auth "admin:$SPLUNK_ADMIN_PASS" 2>/dev/null | grep -i "9997")
+
+[ -n "$ESTADO" ] && echo "  confirmado: $ESTADO"
 
 
 # ------------------------------------------------------------
