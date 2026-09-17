@@ -1,0 +1,237 @@
+{
+ "chartExports": [
+  {
+   "chart": {
+    "autoDetectRelatedDetectorIds": [],
+    "chartLinks": [],
+    "created": 0,
+    "creator": null,
+    "customProperties": {},
+    "description": "",
+    "id": "HSXPyQKA0AI",
+    "lastUpdated": 0,
+    "lastUpdatedBy": null,
+    "name": "CPU por container (%)",
+    "options": {
+     "areaChartOptions": {
+      "showDataMarkers": false
+     },
+     "axes": [
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": null,
+       "min": null
+      },
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": null,
+       "min": null
+      }
+     ],
+     "axisPrecision": null,
+     "colorBy": "Dimension",
+     "defaultPlotType": "LineChart",
+     "eventPublishLabelOptions": [],
+     "histogramChartOptions": {
+      "colorThemeIndex": 16
+     },
+     "includeZero": false,
+     "legendOptions": {
+      "fields": null
+     },
+     "lineChartOptions": {
+      "showDataMarkers": false
+     },
+     "noDataOptions": {
+      "linkText": null,
+      "linkUrl": null,
+      "noDataMessage": null
+     },
+     "onChartLegendOptions": {
+      "dimensionInLegend": "container.name",
+      "showLegend": true
+     },
+     "programOptions": {
+      "disableSampling": false,
+      "maxDelay": null,
+      "minimumResolution": 0,
+      "timezone": null
+     },
+     "publishLabelOptions": [
+      {
+       "displayName": "container.memory.percent",
+       "label": "A",
+       "paletteIndex": null,
+       "plotType": null,
+       "valuePrefix": null,
+       "valueSuffix": null,
+       "valueUnit": null,
+       "yAxis": 0
+      }
+     ],
+     "showEventLines": false,
+     "stacked": false,
+     "time": {
+      "range": 900000,
+      "rangeEnd": 0,
+      "type": "relative"
+     },
+     "type": "TimeSeriesChart",
+     "unitPrefix": "Metric"
+    },
+    "packageSpecifications": "",
+    "programText": "A = data('container.cpu.utilization', filter=filter('container.name', 'fiapbank-otel-*', 'martianbank-otel-*')).mean(by=['container.name']).publish(label='A')",
+    "relatedDetectorIds": [],
+    "tags": []
+   }
+  },
+  {
+   "chart": {
+    "autoDetectRelatedDetectorIds": [],
+    "chartLinks": [],
+    "created": 0,
+    "creator": null,
+    "customProperties": {},
+    "description": "",
+    "id": "HSXQ_dVA0AM",
+    "lastUpdated": 0,
+    "lastUpdatedBy": null,
+    "name": "Uso de CPU por conteiner",
+    "options": {
+     "areaChartOptions": {
+      "showDataMarkers": false
+     },
+     "axes": [
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": null,
+       "min": null
+      },
+      {
+       "highWatermark": null,
+       "highWatermarkLabel": null,
+       "label": "",
+       "lowWatermark": null,
+       "lowWatermarkLabel": null,
+       "max": null,
+       "min": null
+      }
+     ],
+     "axisPrecision": null,
+     "colorBy": "Dimension",
+     "defaultPlotType": "LineChart",
+     "eventPublishLabelOptions": [],
+     "histogramChartOptions": {
+      "colorThemeIndex": 16
+     },
+     "includeZero": false,
+     "legendOptions": {
+      "fields": null
+     },
+     "lineChartOptions": {
+      "showDataMarkers": false
+     },
+     "noDataOptions": {
+      "linkText": null,
+      "linkUrl": null,
+      "noDataMessage": null
+     },
+     "onChartLegendOptions": {
+      "dimensionInLegend": "container.name",
+      "showLegend": true
+     },
+     "programOptions": {
+      "disableSampling": false,
+      "maxDelay": 0,
+      "minimumResolution": 0,
+      "timezone": null
+     },
+     "publishLabelOptions": [
+      {
+       "displayName": "container.cpu.usage.total",
+       "label": "A",
+       "paletteIndex": null,
+       "plotType": null,
+       "valuePrefix": null,
+       "valueSuffix": null,
+       "valueUnit": null,
+       "yAxis": 0
+      }
+     ],
+     "showEventLines": false,
+     "stacked": false,
+     "time": {
+      "range": 900000,
+      "rangeEnd": 0,
+      "type": "relative"
+     },
+     "type": "TimeSeriesChart",
+     "unitPrefix": "Metric"
+    },
+    "packageSpecifications": "",
+    "programText": "A = data('container.cpu.usage.total').publish(label='A')",
+    "relatedDetectorIds": [],
+    "tags": []
+   }
+  }
+ ],
+ "dashboardExport": {
+  "dashboard": {
+   "authorizedWriters": null,
+   "chartDensity": "DEFAULT",
+   "charts": [
+    {
+     "chartId": "HSXPyQKA0AI",
+     "column": 0,
+     "height": 1,
+     "row": 0,
+     "width": 6
+    },
+    {
+     "chartId": "HSXQ_dVA0AM",
+     "column": 0,
+     "height": 1,
+     "row": 1,
+     "width": 6
+    }
+   ],
+   "created": 0,
+   "creator": null,
+   "customProperties": null,
+   "description": "",
+   "discoveryOptions": null,
+   "eventOverlays": null,
+   "filters": {
+    "sources": [],
+    "time": null,
+    "variables": []
+   },
+   "groupId": "HSXPlmmA4AA",
+   "groupName": "Conteineres",
+   "id": "HSXPlmmA4AE",
+   "lastUpdated": 0,
+   "lastUpdatedBy": null,
+   "maxDelayOverride": null,
+   "name": "Conteineres",
+   "permissions": null,
+   "selectedEventOverlays": null,
+   "tags": []
+  }
+ },
+ "hashCode": 348878618,
+ "id": "HSXPlmmA4AE",
+ "modelVersion": 1,
+ "packageType": "DASHBOARD"
+}

@@ -201,7 +201,9 @@ else
     echo "3b. Projetos do compose por nome"
     echo "--------------------------------------------------"
 
-    for PROJETO in fiapbank-otel-host fiapbank-otel-hg
+    # inclui os nomes antigos (martianbank-*) para a transicao do rename
+    for PROJETO in fiapbank-otel-host fiapbank-otel-hg \
+                   martianbank-otel-host martianbank-otel-hg
     do
 
         ATIVOS=$(docker compose -p "$PROJETO" ps -aq 2>/dev/null)
