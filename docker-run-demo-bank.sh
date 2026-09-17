@@ -496,27 +496,52 @@ echo
 echo "9. CRIANDO MONGODB"
 echo "=================================================="
 
+criar_mongodb() {
+    docker run -d \
+        --name fiap-mongodb \
+        --restart unless-stopped \
+        -p 27017:27017 \
+        -v fiap-mongodb-data:/data/db \
+        mongo:7 >/dev/null
+}
+
 if docker ps -a --format '{{.Names}}' | grep -qx "fiap-mongodb"; then
 
     echo "✅ Container fiap-mongodb ja existe."
 
     if ! docker ps --format '{{.Names}}' | grep -qx "fiap-mongodb"; then
-
         echo "🚀 Iniciando MongoDB..."
-        docker start fiap-mongodb
+        docker start fiap-mongodb >/dev/null
+        sleep 3
+    fi
+
+    # "Existe" nao basta: se o container foi criado sem -p 27017:27017, ele
+    # sobe, responde a `docker exec` e parece saudavel - mas nenhuma aplicacao
+    # alcanca o banco, porque em network_mode: host elas usam localhost:27017.
+    # Foi exatamente esse caso que derrubou tudo com
+    # "Operation users.findOne() buffering timed out".
+    if [ -z "$(docker port fiap-mongodb 27017 2>/dev/null)" ]; then
+
+        echo
+        echo "⚠️ O container existe mas NAO publica a porta 27017."
+        echo "   Sem isso as aplicacoes nao conseguem conectar."
+        echo "🔄 Recriando o container (o volume fiap-mongodb-data e' preservado,"
+        echo "   entao os dados continuam)."
+
+        docker rm -f fiap-mongodb >/dev/null 2>&1
+        criar_mongodb
+        sleep 5
+
+    else
+
+        echo "   porta publicada: $(docker port fiap-mongodb 27017)"
 
     fi
 
 else
 
     echo "🚀 Criando MongoDB..."
-
-    docker run -d \
-        --name fiap-mongodb \
-        --restart unless-stopped \
-        -p 27017:27017 \
-        -v fiap-mongodb-data:/data/db \
-        mongo:7
+    criar_mongodb
 
 fi
 
@@ -527,12 +552,15 @@ MONGO_OK=false
 
 for i in {1..30}; do
 
+    # Testa pelo HOST (localhost:27017), que e' como as aplicacoes conectam.
+    # Um `docker exec ... ping` responderia OK mesmo sem a porta publicada.
     if docker exec fiap-mongodb \
         mongosh --quiet \
         --eval 'db.adminCommand("ping").ok' 2>/dev/null \
-        | grep -q "1"; then
+        | grep -q "1" \
+       && (exec 3<>/dev/tcp/localhost/27017) 2>/dev/null; then
 
-        echo "✅ MongoDB esta pronto."
+        echo "✅ MongoDB esta pronto e acessivel em localhost:27017."
         MONGO_OK=true
         break
 
