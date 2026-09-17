@@ -170,6 +170,11 @@ if echo "$TESTE" | grep -q '"result"'; then
     echo "  [OK] a conta consegue buscar em index=$INDICE"
 elif echo "$TESTE" | grep -qi "unauthorized\|401"; then
     echo "  [ERRO] a conta nao autenticou - revise papel e senha"
+elif echo "$TESTE" | grep -qi "minimum free disk space"; then
+    echo "  [ERRO] o Splunk recusou a busca por falta de espaco em disco."
+    echo "         Ele exige 5 GB livres em /opt/splunk/var. A conta em si"
+    echo "         autenticou - o problema e' a maquina, nao a permissao."
+    echo "         Libere espaco:  docker system prune -a"
 elif [ -z "$TESTE" ]; then
     echo "  [AVISO] a busca nao retornou nada."
     echo "          A conta pode estar ok, mas o indice '$INDICE' esta vazio -"
@@ -186,9 +191,21 @@ fi
 echo
 echo "[6/6] Certificado TLS"
 
-CERT=$(docker exec "$CONTAINER" sh -c \
-    "openssl s_client -connect localhost:8089 -servername localhost </dev/null 2>/dev/null \
-     | openssl x509 -outform PEM" 2>/dev/null)
+# Duas tentativas, porque a primeira falha em ambientes comuns: dentro do
+# container o `openssl` nao esta no PATH do docker exec (fica em
+# /opt/splunk/bin/openssl). Pelo host e' mais simples e funciona direto.
+CERT=""
+
+if command -v openssl >/dev/null 2>&1; then
+    CERT=$(echo | openssl s_client -connect "localhost:8089" 2>/dev/null \
+           | openssl x509 -outform PEM 2>/dev/null)
+fi
+
+if [ -z "$CERT" ]; then
+    CERT=$(docker exec "$CONTAINER" sh -c \
+        "/opt/splunk/bin/openssl s_client -connect localhost:8089 </dev/null 2>/dev/null \
+         | /opt/splunk/bin/openssl x509 -outform PEM" 2>/dev/null)
+fi
 
 if [ -n "$CERT" ]; then
     echo "$CERT" > /tmp/splunk-loc-cert.pem
