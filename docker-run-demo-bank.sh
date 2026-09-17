@@ -4,7 +4,7 @@ cat > ~/instalar_bank_docker.sh <<'EOF'
 set -e
 
 echo "=================================================="
-echo " MARTIAN BANK DEMO + SPLUNK (CONTAINERS)"
+echo " BANK DEMO + SPLUNK (CONTAINERS)"
 echo " APM (traces) + LOGS + RUM"
 echo "=================================================="
 
@@ -12,7 +12,7 @@ echo "=================================================="
 # CONFIGURACAO
 # ==================================================
 
-BASE="$HOME/martian-bank-demo-docker"
+BASE="$HOME/bank-demo-docker"
 
 REPO="https://github.com/tonanuvem/bank-demo.git"
 
@@ -410,7 +410,7 @@ backup_file "$API_URLS"
 
 cat > "$API_URLS" <<'JS'
 /*
- * MARTIAN BANK - EC2
+ * BANK - EC2
  *
  * A UI usa automaticamente o hostname/IP
  * utilizado pelo navegador.
@@ -462,7 +462,7 @@ DEPLOYMENT_ENV=$DEPLOYMENT_ENV
 APP_VERSION=1.0.0
 
 SPLUNK_RUM_TOKEN=$SPLUNK_RUM_TOKEN
-SPLUNK_RUM_APP_NAME=martian-bank-ui
+SPLUNK_RUM_APP_NAME=bank-ui
 
 OTEL_LOGS_EXPORTER=$LOGS_EXPORTER
 OTEL_METRICS_EXPORTER=none
@@ -592,7 +592,7 @@ if [ "$MODE" = "host" ]; then
 
                 else
 
-                    echo "ℹ️ Processo $PID nao pertence ao Martian Bank nativo:"
+                    echo "ℹ️ Processo $PID nao pertence ao Bank nativo:"
                     echo "$CMD"
 
                 fi
@@ -956,7 +956,7 @@ echo "mongodb://localhost:27017/martianbank"
 
 echo
 echo "=================================================="
-echo " MARTIAN BANK INICIADO (CONTAINERS)"
+echo " BANK INICIADO (CONTAINERS)"
 echo "=================================================="
 
 IP=$(curl -s --max-time 5 checkip.amazonaws.com || true)
@@ -1007,7 +1007,7 @@ echo
 # echo "        Node/nginx/UI: stdout via log driver fluentd"
 # echo
 # if [ -n "$SPLUNK_RUM_TOKEN" ]; then
-# echo "RUM   > Browser         aplicacao martian-bank-ui"
+# echo "RUM   > Browser         aplicacao bank-ui"
 # else
 # echo "RUM                     desabilitado (SPLUNK_RUM_TOKEN vazio)"
 # fi
