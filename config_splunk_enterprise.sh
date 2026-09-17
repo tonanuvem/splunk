@@ -129,6 +129,11 @@ else
     JA_EXISTIA=false
 
     echo "  criando $CONTAINER (a imagem tem ~2,5 GB na primeira vez)..."
+    echo
+    echo "  [ATENCAO] Este comando aceita, em seu nome, a licenca e os Splunk"
+    echo "            General Terms (SPLUNK_GENERAL_TERMS + --accept-license)."
+    echo "            Sem as duas variaveis a imagem atual nem inicia."
+    echo
 
     docker volume create "$VOLUME" >/dev/null 2>&1
 
@@ -140,6 +145,7 @@ else
         -p "${PORTA_HEC}:8088" \
         -p "${PORTA_S2S}:9997" \
         -p "127.0.0.1:${PORTA_MGMT}:8089" \
+        -e SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com \
         -e SPLUNK_START_ARGS=--accept-license \
         -e SPLUNK_PASSWORD="$SPLUNK_ADMIN_PASS" \
         -v "${VOLUME}:/opt/splunk/var" \
@@ -161,7 +167,25 @@ PRONTO=false
 
 for i in $(seq 1 60); do
 
-    if docker exec "$CONTAINER" /opt/splunk/bin/splunk status 2>/dev/null | grep -q "splunkd is running"; then
+    # O healthcheck da propria imagem e' o sinal mais confiavel: durante o
+    # Ansible de inicializacao o `splunk status` ainda reclama que nao acha o
+    # splunk-launch.conf, o que nao significa falha.
+    SAUDE=$(docker inspect -f '{{.State.Health.Status}}' "$CONTAINER" 2>/dev/null)
+
+    if [ "$SAUDE" = "healthy" ]; then
+        PRONTO=true
+        echo "  [OK] container saudavel (${i}0s)"
+        break
+    fi
+
+    if [ "$SAUDE" = "unhealthy" ]; then
+        echo "  [ERRO] container marcado como unhealthy:"
+        docker logs --tail 10 "$CONTAINER" 2>&1 | cut -c1-120
+        exit 1
+    fi
+
+    # imagens sem healthcheck: cai no status do splunkd
+    if [ -z "$SAUDE" ] && docker exec "$CONTAINER" /opt/splunk/bin/splunk status 2>/dev/null | grep -q "splunkd is running"; then
         PRONTO=true
         echo "  [OK] splunkd rodando (${i}0s)"
         break

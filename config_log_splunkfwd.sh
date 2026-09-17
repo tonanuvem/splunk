@@ -267,6 +267,7 @@ else
     echo
     echo "    docker run -d --name splunk-enterprise \\"
     echo "      -p 8000:8000 -p 8088:8088 -p 9997:9997 \\"
+    echo "      -e SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com \\"
     echo "      -e SPLUNK_START_ARGS=--accept-license \\"
     echo "      -e SPLUNK_PASSWORD='<senha>' \\"
     echo "      splunk/splunk:latest"
