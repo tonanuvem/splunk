@@ -571,8 +571,9 @@ echo
 echo "Para iniciar novamente:"
 echo
 echo "  local:  ~/instalar_bank.sh"
-echo "  docker: ~/instalar_bank_docker.sh host"
-echo "          ~/instalar_bank_docker.sh bridge"
+echo "  docker: cd ~/splunk && bash docker-run-demo-bank.sh host"
+echo "          cd ~/splunk && bash docker-run-demo-bank.sh bridge"
+echo "          (apos a 1a vez, o atalho ~/instalar_bank_docker.sh tambem serve)"
 
 
 echo

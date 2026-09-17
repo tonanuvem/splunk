@@ -41,6 +41,15 @@ PORTA_HEC="${PORTA_HEC:-8088}"
 PORTA_S2S="${PORTA_S2S:-9997}"
 PORTA_MGMT="${PORTA_MGMT:-8089}"
 
+# Por padrao TODAS as portas saem em 0.0.0.0, para dar para acessar de fora da
+# EC2 - e' um laboratorio. Para prender a porta de gerenciamento (8089, a API
+# admin do Splunk) ao loopback, rode com RESTRINGIR_MGMT=sim.
+if [ "${RESTRINGIR_MGMT:-nao}" = "sim" ]; then
+    BIND_MGMT="127.0.0.1:"
+else
+    BIND_MGMT=""
+fi
+
 COLLECTOR_CONF="/etc/otel/collector/splunk-otel-collector.conf"
 BASE_DOCKER="$HOME/martian-bank-demo-docker"
 [ -d "$BASE_DOCKER" ] || BASE_DOCKER="/home/ec2-user/martian-bank-demo-docker"
@@ -92,7 +101,7 @@ fi
 echo
 echo "[2/8] Portas"
 
-for P in "$PORTA_WEB" "$PORTA_HEC" "$PORTA_S2S"; do
+for P in "$PORTA_WEB" "$PORTA_HEC" "$PORTA_S2S" "$PORTA_MGMT"; do
     if ss -lnt 2>/dev/null | grep -q ":$P "; then
         DONO=$(ss -lntp 2>/dev/null | grep ":$P " | grep -oE 'users:\(\("[^"]+' | cut -d'"' -f2 | head -1)
         echo "  [ATENCAO] porta $P ja ocupada por ${DONO:-algo}"
@@ -144,7 +153,7 @@ else
         -p "${PORTA_WEB}:8000" \
         -p "${PORTA_HEC}:8088" \
         -p "${PORTA_S2S}:9997" \
-        -p "127.0.0.1:${PORTA_MGMT}:8089" \
+        -p "${BIND_MGMT}${PORTA_MGMT}:8089" \
         -e SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com \
         -e SPLUNK_START_ARGS=--accept-license \
         -e SPLUNK_PASSWORD="$SPLUNK_ADMIN_PASS" \
@@ -365,15 +374,28 @@ else
 fi
 
 echo
-echo "  HEC:         http://localhost:${PORTA_HEC}/services/collector"
+echo "  HEC (collector, na propria EC2):"
+echo "               http://localhost:${PORTA_HEC}/services/collector"
+echo "  HEC (de fora da EC2):"
+echo "               http://${IP:-<ip-da-ec2>}:${PORTA_HEC}/services/collector"
 echo "  Token:       $TOKEN"
 echo "  Forwarder:   porta ${PORTA_S2S} habilitada"
+echo "  API admin:   ${BIND_MGMT:-0.0.0.0:}${PORTA_MGMT} (Splunk management)"
+echo
+echo "  Teste o HEC de qualquer maquina:"
+echo "    curl -k http://${IP:-<ip-da-ec2>}:${PORTA_HEC}/services/collector \\"
+echo "      -H 'Authorization: Splunk $TOKEN' \\"
+echo "      -d '{\"event\":\"ola do meu notebook\"}'"
+echo
+echo "  Libere no Security Group da EC2: ${PORTA_WEB}, ${PORTA_HEC}, ${PORTA_S2S}."
+echo "  Para prender a API admin ao loopback: RESTRINGIR_MGMT=sim"
 echo
 echo "  FALTA UM PASSO: ligar o envio de logs das aplicacoes."
 echo
 echo "    cd $BASE_DOCKER"
 echo "    sed -i 's/^OTEL_LOGS_EXPORTER=.*/OTEL_LOGS_EXPORTER=otlp/' .env"
-echo "    ~/instalar_bank_docker.sh host"
+echo "    cd ~/splunk && bash docker-run-demo-bank.sh host"
+echo "    # (ou o atalho ~/instalar_bank_docker.sh host, gerado pelo comando acima)"
 echo
 echo "  Para incluir tambem o stdout de Node/nginx/UI, suba com o override:"
 echo

@@ -57,7 +57,8 @@ echo "1. IDENTIFICANDO A EXECUCAO"
 echo "=================================================="
 
 if [ ! -d "$BASE" ]; then
-    echo "❌ $BASE nao existe. Rode antes: ~/instalar_bank_docker.sh host"
+    echo "❌ $BASE nao existe."
+    echo "   Rode antes: cd ~/splunk && bash docker-run-demo-bank.sh host"
     exit 1
 fi
 
@@ -69,7 +70,7 @@ PROJETO=$(docker ps --format '{{.Names}}' \
 
 if [ -z "$PROJETO" ]; then
     echo "❌ Nenhum container do Martian Bank rodando."
-    echo "   Rode antes: ~/instalar_bank_docker.sh host"
+    echo "   Rode antes: cd ~/splunk && bash docker-run-demo-bank.sh host"
     exit 1
 fi
 
