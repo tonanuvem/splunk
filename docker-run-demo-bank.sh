@@ -233,21 +233,11 @@ if [ "$HEC_TESTE" = "404" ]; then
 
     LOGS_EXPORTER="none"
 
-    # Se uma execucao anterior deste script preencheu o HEC token, limpamos:
-    # com ele preenchido o collector tenta entregar e falha em loop.
-    if [ -n "$HEC_TOKEN" ]; then
-
-        echo
-        echo "🧹 Limpando SPLUNK_HEC_TOKEN (preenchido por uma execucao anterior)"
-
-        sudo cp "$COLLECTOR_CONF" "$COLLECTOR_CONF.bkp.$(date +%s)"
-
-        sudo sed -i "s|^SPLUNK_HEC_TOKEN=.*|SPLUNK_HEC_TOKEN=|" "$COLLECTOR_CONF"
-
-        COLLECTOR_CHANGED=true
-
-    fi
-
+    # NAO mexemos no SPLUNK_HEC_TOKEN. Uma versao anterior deste script o
+    # limpava para evitar o retry infinito, mas isso e' desnecessario (com
+    # OTEL_LOGS_EXPORTER=none e o log driver fluentd desligado, nada alimenta
+    # a pipeline de logs) e arriscado: em algumas versoes do collector o
+    # exporter splunk_hec nao valida com o token vazio e o servico nem sobe.
     echo
     echo "   Para demonstrar logs no Splunk, e' preciso um Splunk Cloud ou"
     echo "   Enterprise recebendo por HEC, e ligar o Log Observer Connect."
@@ -336,12 +326,53 @@ if [ "$COLLECTOR_CHANGED" = "true" ]; then
     echo
     echo "🔄 Reiniciando o collector..."
 
+    ULTIMO_BKP=$(sudo ls -t "$COLLECTOR_CONF".bkp.* 2>/dev/null | head -1)
+
     sudo systemctl restart splunk-otel-collector
 
-    sleep 5
+    sleep 6
 
-    echo "✅ Collector reiniciado:"
-    systemctl is-active splunk-otel-collector
+    if systemctl is-active --quiet splunk-otel-collector; then
+
+        echo "✅ Collector reiniciado e ativo."
+
+    else
+
+        echo
+        echo "❌ O COLLECTOR NAO SUBIU APOS A MUDANCA."
+        echo
+        echo "Erro reportado:"
+        sudo journalctl -u splunk-otel-collector --since "1 minute ago" --no-pager 2>/dev/null \
+            | grep -iE "error|invalid|cannot|failed to|required" | tail -5
+
+        if [ -n "$ULTIMO_BKP" ]; then
+
+            echo
+            echo "🔙 Revertendo para o backup: $ULTIMO_BKP"
+
+            sudo cp "$ULTIMO_BKP" "$COLLECTOR_CONF"
+
+            sudo systemctl reset-failed splunk-otel-collector 2>/dev/null
+            sudo systemctl restart splunk-otel-collector
+
+            sleep 6
+
+            if systemctl is-active --quiet splunk-otel-collector; then
+                echo "✅ Collector restaurado e ativo (a mudanca foi desfeita)."
+            else
+                echo "❌ Nem com o backup o collector sobe. Investigue o agent_config.yaml:"
+                echo "   sudo journalctl -u splunk-otel-collector -n 50 --no-pager"
+                exit 1
+            fi
+
+        else
+
+            echo "⚠️ Nenhum backup encontrado para reverter."
+            exit 1
+
+        fi
+
+    fi
 
 fi
 
