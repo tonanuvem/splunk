@@ -45,11 +45,49 @@ fi
 # 4. Reinicialização e Validação do Serviço
 echo "Reiniciando o serviço splunk-otel-collector..."
 systemctl restart splunk-otel-collector
-sleep 2
+sleep 6
 
 if systemctl is-active --quiet splunk-otel-collector; then
+
     echo "[SUCESSO] Splunk OTel Collector reiniciado com o receiver nativo rodando!"
+    echo
+    echo "As métricas aparecem como container.cpu.utilization,"
+    echo "container.memory.usage.total e container.memory.percent,"
+    echo "com as dimensões container.name, container.id e container.image.name."
+    echo "Não há dashboard pronto: use o SIGNALFLOW-DASHBOARD.md."
+
 else
-    echo "[ERRO] O serviço falhou. Verifique os logs executando: sudo journalctl -u splunk-otel-collector --no-pager -n 50"
+
+    # Um erro de YAML derruba o collector já na validação da config, em
+    # milissegundos. Sem reverter, a EC2 fica sem telemetria nenhuma - e o
+    # motivo passa despercebido. Então mostramos o erro e desfazemos.
+    echo "[ERRO] O collector não subiu após a mudança."
+    echo
+    echo "Erro reportado:"
+    journalctl -u splunk-otel-collector --since "1 minute ago" --no-pager 2>/dev/null \
+        | grep -iE "error|invalid|cannot|failed to|required" | tail -5
+
+    if [ -f "${CONFIG_FILE}.bak_otel" ]; then
+
+        echo
+        echo "[INFO] Revertendo para ${CONFIG_FILE}.bak_otel ..."
+
+        cp "${CONFIG_FILE}.bak_otel" "$CONFIG_FILE"
+
+        systemctl reset-failed splunk-otel-collector 2>/dev/null
+        systemctl restart splunk-otel-collector
+        sleep 6
+
+        if systemctl is-active --quiet splunk-otel-collector; then
+            echo "[OK] Collector restaurado e ativo. A mudança foi desfeita."
+            echo "     Investigue o agent_config.yaml antes de tentar de novo."
+        else
+            echo "[ERRO] Nem com o backup o collector sobe:"
+            echo "  sudo journalctl -u splunk-otel-collector --no-pager -n 50"
+        fi
+
+    fi
+
     exit 1
+
 fi
