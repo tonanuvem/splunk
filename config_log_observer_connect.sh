@@ -52,14 +52,8 @@ if ! docker ps --format '{{.Names}}' | grep -qx "$CONTAINER"; then
     exit 1
 fi
 
-if [ -z "${SPLUNK_ADMIN_PASS:-}" ]; then
-    echo
-    echo "[ERRO] Informe a senha do admin do Splunk (a que o"
-    echo "       config_splunk_enterprise.sh mostrou no fim):"
-    echo
-    echo "  sudo SPLUNK_ADMIN_PASS='<senha>' ./config_log_observer_connect.sh"
-    exit 1
-fi
+# Mesma senha padrao do config_splunk_enterprise.sh
+SPLUNK_ADMIN_PASS="${SPLUNK_ADMIN_PASS:-Teste@123}"
 
 if [ -z "${LOC_PASS:-}" ]; then
     LOC_PASS="Loc@$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 12)"

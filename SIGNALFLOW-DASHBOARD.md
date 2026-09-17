@@ -151,7 +151,7 @@ A = data('container.cpu.utilization').publish(label='teste')
 ```
 
 Sem filtro nenhum, ele mostra **todos** os containers da EC2 — incluindo o
-`martian-mongodb`. Se aparecer, a coleta está funcionando e é só ajustar os
+`fiap-mongodb`. Se aparecer, a coleta está funcionando e é só ajustar os
 filtros.
 
 E para gerar carga e ver os gráficos se mexerem:
@@ -170,7 +170,7 @@ Medidas na saída real do receiver:
 |---|---|
 | `container.name` | `fiapbank-otel-host-accounts-1` |
 | `container.id` | `010a272e63c6b2b4...` |
-| `container.image.name` | `martian-bank-accounts-otel` |
+| `container.image.name` | `fiap-bank-accounts-otel` |
 | `container.hostname` | `010a272e63c6` |
 
 Agrupar por `container.image.name` em vez de `container.name` é útil quando você

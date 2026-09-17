@@ -86,11 +86,15 @@ if [ -n "${RAM_MB:-}" ]; then
     fi
 fi
 
-if [ -z "${SPLUNK_ADMIN_PASS:-}" ]; then
-    SPLUNK_ADMIN_PASS="Fiap@$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 10)"
-    SENHA_GERADA=true
-else
-    SENHA_GERADA=false
+# Mesma senha do usuario de teste do banco (Teste@123): uma so' para todo o
+# laboratorio. O Splunk EXIGE no minimo 8 caracteres ASCII imprimiveis, entao
+# um "fiap" puro nao passaria e o container nem inicializaria.
+SPLUNK_ADMIN_PASS="${SPLUNK_ADMIN_PASS:-Teste@123}"
+
+if [ ${#SPLUNK_ADMIN_PASS} -lt 8 ]; then
+    echo "[ERRO] A senha precisa de no minimo 8 caracteres (regra do Splunk)."
+    echo "       '$SPLUNK_ADMIN_PASS' tem ${#SPLUNK_ADMIN_PASS}."
+    exit 1
 fi
 
 
@@ -367,10 +371,10 @@ echo
 echo "  Splunk Web:  http://${IP:-<ip-da-ec2>}:${PORTA_WEB}"
 echo "  Usuario:     admin"
 
-if [ "$SENHA_GERADA" = "true" ] && [ "$JA_EXISTIA" = "false" ]; then
-    echo "  Senha:       $SPLUNK_ADMIN_PASS      <-- ANOTE, nao fica salva"
+if [ "$JA_EXISTIA" = "false" ]; then
+    echo "  Senha:       $SPLUNK_ADMIN_PASS"
 else
-    echo "  Senha:       (a que voce definiu)"
+    echo "  Senha:       (a definida quando o container foi criado)"
 fi
 
 echo

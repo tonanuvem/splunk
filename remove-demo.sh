@@ -30,10 +30,10 @@ for ARG in "$@"; do
         -h|--help)
             echo "Uso: ~/parar_bank.sh [--imagens] [--dados]"
             echo
-            echo "  --imagens   remove tambem as imagens martian-bank*"
+            echo "  --imagens   remove tambem as imagens fiap-bank*"
             echo "              (o proximo start precisa rebuildar, ~10 min)"
-            echo "  --dados     remove o container martian-mongodb E o volume"
-            echo "              martian-mongodb-data (APAGA contas e transacoes)"
+            echo "  --dados     remove o container fiap-mongodb E o volume"
+            echo "              fiap-mongodb-data (APAGA contas e transacoes)"
             exit 0
             ;;
     esac
@@ -224,15 +224,15 @@ else
     done
 
 
-    # --- 3c. varredura por imagem martian-bank* ---
+    # --- 3c. varredura por imagem fiap-bank* ---
     # pega containers criados na mao ou com outro nome de projeto
 
     echo
-    echo "3c. Containers remanescentes (imagem martian-bank*)"
+    echo "3c. Containers remanescentes (imagem fiap-bank*)"
     echo "--------------------------------------------------"
 
     RESTANTES=$(docker ps -a --format '{{.ID}}|{{.Image}}|{{.Names}}' 2>/dev/null \
-        | awk -F'|' '$2 ~ /^martian-bank/ {print $1" "$3}')
+        | awk -F'|' '$2 ~ /^(fiap|martian)-bank/ {print $1" "$3}')
 
     if [ -n "$RESTANTES" ]; then
 
@@ -248,7 +248,7 @@ else
 
     else
 
-        echo "ℹ️ Nenhum container martian-bank* restante."
+        echo "ℹ️ Nenhum container do FIAP Bank restante."
 
     fi
 
@@ -289,7 +289,7 @@ else
     if [ "$REMOVER_IMAGENS" = "true" ]; then
 
         IMAGENS=$(docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null \
-            | grep -E '^martian-bank')
+            | grep -E '^(fiap|martian)-bank')
 
         if [ -n "$IMAGENS" ]; then
 
@@ -307,7 +307,7 @@ else
 
         else
 
-            echo "ℹ️ Nenhuma imagem martian-bank* encontrada."
+            echo "ℹ️ Nenhuma imagem fiap-bank* encontrada."
 
         fi
 
@@ -316,7 +316,7 @@ else
         QTD=$(docker images --format '{{.Repository}}' 2>/dev/null \
             | grep -cE '^martian-bank')
 
-        echo "💾 $QTD imagem(ns) martian-bank* PRESERVADA(S)."
+        echo "💾 $QTD imagem(ns) fiap-bank* PRESERVADA(S)."
         echo "   Para remover tambem: ~/parar_bank.sh --imagens"
 
     fi
@@ -386,13 +386,13 @@ if [ "$TEM_DOCKER" != "true" ]; then
 
     echo "ℹ️ Docker nao disponivel - etapa pulada."
 
-elif docker ps -a --format '{{.Names}}' | grep -qx "martian-mongodb"; then
+elif docker ps -a --format '{{.Names}}' | grep -qx "fiap-mongodb"; then
 
-    if docker ps --format '{{.Names}}' | grep -qx "martian-mongodb"; then
+    if docker ps --format '{{.Names}}' | grep -qx "fiap-mongodb"; then
 
-        echo "🛑 Parando martian-mongodb..."
+        echo "🛑 Parando fiap-mongodb..."
 
-        docker stop martian-mongodb
+        docker stop fiap-mongodb
 
         echo "✅ MongoDB parado."
 
@@ -407,11 +407,11 @@ elif docker ps -a --format '{{.Names}}' | grep -qx "martian-mongodb"; then
         echo
         echo "🗑️ Removendo container e volume do MongoDB..."
 
-        docker rm -f martian-mongodb >/dev/null 2>&1
+        docker rm -f fiap-mongodb >/dev/null 2>&1
 
-        docker volume rm martian-mongodb-data >/dev/null 2>&1 \
-            && echo "✅ Volume martian-mongodb-data removido." \
-            || echo "ℹ️ Volume martian-mongodb-data nao existe ou esta em uso."
+        docker volume rm fiap-mongodb-data >/dev/null 2>&1 \
+            && echo "✅ Volume fiap-mongodb-data removido." \
+            || echo "ℹ️ Volume fiap-mongodb-data nao existe ou esta em uso."
 
         echo "⚠️ Contas, transacoes e emprestimos foram APAGADOS."
 
@@ -419,7 +419,7 @@ elif docker ps -a --format '{{.Names}}' | grep -qx "martian-mongodb"; then
 
 else
 
-    echo "ℹ️ Container martian-mongodb não existe."
+    echo "ℹ️ Container fiap-mongodb não existe."
 
 fi
 
@@ -470,7 +470,7 @@ if [ "$TEM_DOCKER" != "true" ]; then
 else
 
     CONTAINERS=$(docker ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}' 2>/dev/null \
-        | grep -E 'martian-bank|martian-mongodb')
+        | grep -E 'fiap-bank|martian-bank|fiap-mongodb|martian-mongodb')
 
     if [ -n "$CONTAINERS" ]; then
 
@@ -526,7 +526,7 @@ echo "=================================================="
 
 
 if [ "$TEM_DOCKER" = "true" ] \
-    && docker ps --format '{{.Names}}' | grep -qx "martian-mongodb"; then
+    && docker ps --format '{{.Names}}' | grep -qx "fiap-mongodb"; then
 
     echo "⚠️ MongoDB ainda está rodando."
 
@@ -561,7 +561,7 @@ else
 fi
 
 if [ "$REMOVER_IMAGENS" = "true" ]; then
-    echo "🗑️ Imagens martian-bank* REMOVIDAS."
+    echo "🗑️ Imagens fiap-bank* REMOVIDAS."
 else
     echo "💾 Imagens martian-bank* foram PRESERVADAS."
 fi
@@ -589,7 +589,7 @@ echo "~/parar_bank.sh"
 echo
 echo "Uso:"
 echo "  ~/parar_bank.sh              para tudo (preserva imagens e dados)"
-echo "  ~/parar_bank.sh --imagens    remove tambem as imagens martian-bank*"
+echo "  ~/parar_bank.sh --imagens    remove tambem as imagens fiap-bank*"
 echo "  ~/parar_bank.sh --dados      remove tambem o MongoDB e os dados"
 echo
 echo "Executando script"

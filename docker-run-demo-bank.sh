@@ -496,14 +496,14 @@ echo
 echo "9. CRIANDO MONGODB"
 echo "=================================================="
 
-if docker ps -a --format '{{.Names}}' | grep -qx "martian-mongodb"; then
+if docker ps -a --format '{{.Names}}' | grep -qx "fiap-mongodb"; then
 
-    echo "✅ Container martian-mongodb ja existe."
+    echo "✅ Container fiap-mongodb ja existe."
 
-    if ! docker ps --format '{{.Names}}' | grep -qx "martian-mongodb"; then
+    if ! docker ps --format '{{.Names}}' | grep -qx "fiap-mongodb"; then
 
         echo "🚀 Iniciando MongoDB..."
-        docker start martian-mongodb
+        docker start fiap-mongodb
 
     fi
 
@@ -512,10 +512,10 @@ else
     echo "🚀 Criando MongoDB..."
 
     docker run -d \
-        --name martian-mongodb \
+        --name fiap-mongodb \
         --restart unless-stopped \
         -p 27017:27017 \
-        -v martian-mongodb-data:/data/db \
+        -v fiap-mongodb-data:/data/db \
         mongo:7
 
 fi
@@ -527,7 +527,7 @@ MONGO_OK=false
 
 for i in {1..30}; do
 
-    if docker exec martian-mongodb \
+    if docker exec fiap-mongodb \
         mongosh --quiet \
         --eval 'db.adminCommand("ping").ok' 2>/dev/null \
         | grep -q "1"; then
@@ -546,7 +546,7 @@ done
 if [ "$MONGO_OK" != "true" ]; then
 
     echo "❌ MongoDB nao respondeu."
-    docker logs --tail 50 martian-mongodb
+    docker logs --tail 50 fiap-mongodb
     exit 1
 
 fi
@@ -942,7 +942,7 @@ echo "21. MONGODB"
 echo "=================================================="
 
 docker ps \
-    --filter name=martian-mongodb \
+    --filter name=fiap-mongodb \
     --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 
 echo
