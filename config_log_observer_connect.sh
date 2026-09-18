@@ -192,9 +192,16 @@ kernel_incompativel() {
         >/dev/null 2>&1
 }
 
-contorno_ja_aplicado() {
+tunables_do_container() {
     docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" \
-        2>/dev/null | grep -q '^GLIBC_TUNABLES='
+        2>/dev/null | grep '^GLIBC_TUNABLES=' | cut -d= -f2- | head -1
+}
+
+# A imagem do Splunk pode definir GLIBC_TUNABLES por conta propria, com
+# outro ajuste qualquer. Conferir so' a presenca da variavel daria falso
+# positivo e pularia o contorno para sempre: o que importa e' o valor.
+contorno_ja_aplicado() {
+    tunables_do_container | grep -q 'glibc\.pthread\.rseq=0'
 }
 
 KV=$(ler_kvstore)
@@ -218,6 +225,7 @@ else
         # o LOC segue normalmente; se nao, caimos no aviso mais abaixo.
         if contorno_ja_aplicado; then
             echo "  [INFO] o contorno do rseq ja esta aplicado e nao resolveu."
+            echo "         GLIBC_TUNABLES=$(tunables_do_container)"
         else
             echo
             echo "  [1/2] Aplicando o contorno automaticamente"

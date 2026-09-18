@@ -148,7 +148,7 @@ done
 if [ -n "${GLIBC_TUNABLES:-}" ] \
    && docker ps -a --format '{{.Names}}' | grep -qx "$CONTAINER" \
    && ! docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" 2>/dev/null \
-        | grep -q '^GLIBC_TUNABLES='; then
+        | grep -q 'glibc\.pthread\.rseq=0'; then
 
     echo "  [INFO] o container atual foi criado sem GLIBC_TUNABLES."
     echo "         Recriando para aplicar o contorno do KV Store."
@@ -191,8 +191,22 @@ else
     # do Mongo usar o proprio. Passe GLIBC_TUNABLES=glibc.pthread.rseq=0
     EXTRA_ENV=""
     if [ -n "${GLIBC_TUNABLES:-}" ]; then
-        EXTRA_ENV="-e GLIBC_TUNABLES=$GLIBC_TUNABLES"
-        echo "  [INFO] aplicando GLIBC_TUNABLES=$GLIBC_TUNABLES"
+        # GLIBC_TUNABLES e' uma lista separada por ':'. Se a imagem ja define
+        # a variavel, passar so' o nosso valor descartaria o ajuste dela --
+        # entao concatenamos em vez de substituir.
+        BASE_TUN=$(docker image inspect \
+            -f '{{range .Config.Env}}{{println .}}{{end}}' "$IMAGEM" 2>/dev/null \
+            | grep '^GLIBC_TUNABLES=' | cut -d= -f2- | head -1)
+
+        if [ -n "$BASE_TUN" ]; then
+            echo "  [INFO] a imagem ja define GLIBC_TUNABLES=$BASE_TUN"
+            VALOR_TUN="$BASE_TUN:$GLIBC_TUNABLES"
+        else
+            VALOR_TUN="$GLIBC_TUNABLES"
+        fi
+
+        EXTRA_ENV="-e GLIBC_TUNABLES=$VALOR_TUN"
+        echo "  [INFO] aplicando GLIBC_TUNABLES=$VALOR_TUN"
     fi
 
     # shellcheck disable=SC2086
