@@ -63,13 +63,13 @@ perguntar_rum() {
     echo " TOKEN DE RUM (opcional)"
     echo "=================================================="
     echo
-    echo "O RUM instrumenta o NAVEGADOR: mostra carregamento de pagina,"
-    echo "erros de JavaScript e liga o clique do usuario ao traco do"
-    echo "backend. Sem ele o resto (APM, logs, metricas) funciona igual."
-    echo
-    echo "Onde pegar, no Splunk Observability Cloud:"
-    echo "  Settings > Access Tokens > (seu token) > Authorization Scopes"
-    echo "  e marque RUM. Copie o valor do token."
+    # echo "O RUM instrumenta o NAVEGADOR: mostra carregamento de pagina,"
+    # echo "erros de JavaScript e liga o clique do usuario ao traco do"
+    # echo "backend. Sem ele o resto (APM, logs, metricas) funciona igual."
+    # echo
+    # echo "Onde pegar, no Splunk Observability Cloud:"
+    # echo "  Settings > Access Tokens > (seu token) > Authorization Scopes"
+    # echo "  e marque RUM. Copie o valor do token."
     echo
     echo "Cole o token abaixo e tecle Enter."
     echo "Para seguir SEM RUM, apenas tecle Enter."
