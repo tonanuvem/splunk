@@ -236,9 +236,9 @@ echo "============================================================"
 echo
 echo "  No Observability Cloud: Logs > Logs Connections > Add new connection > Splunk Enterprise"
 echo
-echo "    Splunk Enterprise URL:  https://${IP:-<ip-da-ec2>}:8089"
 echo "    Username:               $USUARIO_LOC"
 echo "    Password:               $LOC_PASS"
+echo "    Splunk Enterprise URL:  https://${IP:-<ip-da-ec2>}:8089"
 echo "    Certificado:            /tmp/splunk-loc-cert.pem"
 echo
 echo "------------------------------------------------------------"
