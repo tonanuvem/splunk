@@ -192,6 +192,45 @@ else
     echo "         Sem ele nao ha autenticacao por token, e o Log Observer"
     echo "         Connect nao conecta - por mais certos que estejam conta,"
     echo "         papel, certificado e firewall."
+    # Antes de listar causas genericas, procura a assinatura da
+    # incompatibilidade MongoDB x kernel 6.19+, que nao tem conserto do lado
+    # do Splunk e mandaria o usuario investigar disco e CPU a toa.
+    if docker exec -u splunk "$CONTAINER" sh -c \
+        "grep -l 'known incompatibility' /opt/splunk/var/log/splunk/mongod.log" \
+        >/dev/null 2>&1; then
+
+        echo
+        echo "  CAUSA IDENTIFICADA: incompatibilidade do MongoDB com o kernel."
+        echo
+        docker exec -u splunk "$CONTAINER" sh -c \
+            "grep -h 'known incompatibility' /opt/splunk/var/log/splunk/mongod.log | tail -1" \
+            2>/dev/null | cut -c1-200 | sed 's/^/    /'
+        echo
+        echo "  O kernel desta maquina e' $(uname -r). O MongoDB embutido no KV"
+        echo "  Store nao sobe em kernel 6.19 ou mais novo (TCMalloc/rseq,"
+        echo "  MongoDB SERVER-121912). Nao ha ajuste dentro do Splunk que"
+        echo "  resolva: o container usa o kernel do host."
+        echo
+        echo "  Caminhos possiveis:"
+        echo
+        echo "   a) Rodar o Splunk Enterprise numa maquina com kernel <= 6.18."
+        echo "      Era o caso da EC2 Amazon Linux usada antes, onde funcionou."
+        echo
+        echo "   b) Tentar o contorno de comunidade (nao oficial, 1 minuto):"
+        echo "        docker rm -f $CONTAINER"
+        echo "        GLIBC_EXTRA='-e GLIBC_TUNABLES=glibc.pthread.rseq=0' \\"
+        echo "          sudo ./config_splunk_enterprise.sh"
+        echo
+        echo "   c) SEGUIR SEM o Log Observer Connect. Esta e' a saida pratica"
+        echo "      para a aula: o KV Store nao afeta indexacao nem busca."
+        echo "      Os logs continuam chegando e pesquisaveis no Splunk Web:"
+        echo "        index=main | head 50"
+        echo "      O que se perde e' apenas ve-los DENTRO do Observability."
+        echo
+        exit 1
+
+    fi
+
     echo
     echo "  Causas mais comuns, em ordem:"
     echo

@@ -150,8 +150,19 @@ else
 
     docker volume create "$VOLUME" >/dev/null 2>&1
 
+    # Contorno (nao oficial) para a incompatibilidade do MongoDB do KV Store
+    # com kernel 6.19+: desativar o registro de rseq da glibc, para o TCMalloc
+    # do Mongo usar o proprio. Passe GLIBC_TUNABLES=glibc.pthread.rseq=0
+    EXTRA_ENV=""
+    if [ -n "${GLIBC_TUNABLES:-}" ]; then
+        EXTRA_ENV="-e GLIBC_TUNABLES=$GLIBC_TUNABLES"
+        echo "  [INFO] aplicando GLIBC_TUNABLES=$GLIBC_TUNABLES"
+    fi
+
+    # shellcheck disable=SC2086
     docker run -d \
         --name "$CONTAINER" \
+        $EXTRA_ENV \
         --restart unless-stopped \
         --hostname splunk-enterprise \
         -p "${PORTA_WEB}:8000" \
