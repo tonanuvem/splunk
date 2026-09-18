@@ -36,8 +36,24 @@ sudo bash ./config_splunk_enterprise.sh $ARGS_SPLUNK
 sudo bash ./config_log_observer_connect.sh
 STATUS_LOC=$?
 
-IP=$(curl -s --max-time 3 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null)
+# O IMDS da AWS exige token (IMDSv2), entao consultar /latest/meta-data
+# direto volta vazio. O checkip resolve e e' o mesmo que os outros scripts usam.
+IP=$(curl -s --max-time 5 checkip.amazonaws.com 2>/dev/null | tr -d '[:space:]')
 [ -n "$IP" ] || IP="<ip-da-vm>"
+
+# A senha so e' Teste@123 se este script criou o container. Num container
+# preexistente o /opt/splunk/etc guardou a senha antiga, e afirmar a nova
+# mandaria o aluno bater de cabeca na tela de login. Entao: verificar.
+SENHA_PADRAO="Teste@123"
+CODIGO=$(sudo docker exec splunk-enterprise \
+    curl -s -k -o /dev/null -w '%{http_code}' --max-time 10 \
+    -u "admin:$SENHA_PADRAO" https://localhost:8089/services/server/info 2>/dev/null)
+
+case "$CODIGO" in
+    200) SENHA_MSG="$SENHA_PADRAO" ;;
+    401) SENHA_MSG="(nao e' $SENHA_PADRAO - foi definida quando o container"$'\n'"               foi criado. Para zerar: docker rm -f splunk-enterprise"$'\n'"               e rode de novo; os indices ficam no volume.)" ;;
+    *)   SENHA_MSG="(nao consegui verificar; deveria ser $SENHA_PADRAO)" ;;
+esac
 
 echo
 echo "============================================================"
@@ -46,7 +62,7 @@ echo "============================================================"
 echo
 echo "  Splunk Web:  http://$IP:8090"
 echo "  Usuario:     admin"
-echo "  Senha:       Teste@123"
+echo "  Senha:       $SENHA_MSG"
 echo
 echo "  Busca para conferir os logs:"
 echo "    index=main | head 50"

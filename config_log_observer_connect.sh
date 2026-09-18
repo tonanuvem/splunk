@@ -226,9 +226,10 @@ else
         echo "      Sem fixar no GRUB a maquina volta no 7.0 e nada muda."
         echo
         echo "   b) Tentar o contorno de comunidade (nao oficial, 1 minuto):"
-        echo "        sudo GLIBC_TUNABLES=glibc.pthread.rseq=0 bash run-config.sh"
-        echo "      O config_splunk_enterprise.sh detecta que o container atual"
-        echo "      nao tem a variavel e recria sozinho; nao precisa remover."
+        echo "        bash run-config.sh --rseq-workaround"
+        echo "      Use a FLAG, nao a variavel de ambiente: o sudo apaga o"
+        echo "      ambiente (env_reset) e o contorno seria pulado em silencio."
+        echo "      O container e' recriado sozinho; nao precisa remover."
         echo
         echo "   c) SEGUIR SEM o Log Observer Connect. Esta e' a saida pratica"
         echo "      para a aula: o KV Store nao afeta indexacao nem busca."

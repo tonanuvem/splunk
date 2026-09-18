@@ -110,8 +110,10 @@ for P in "$PORTA_WEB" "$PORTA_HEC" "$PORTA_S2S" "$PORTA_MGMT"; do
         DONO=$(ss -lntp 2>/dev/null | grep ":$P " | grep -oE 'users:\(\("[^"]+' | cut -d'"' -f2 | head -1)
         # Numa reexecucao quem ocupa a porta e' o proprio Splunk. Chamar isso
         # de conflito assusta o aluno a toa.
-        if docker ps --format '{{.Names}} {{.Ports}}' 2>/dev/null \
-             | grep -q "^$CONTAINER .*:$P->"; then
+        # "docker port" imprime "8000/tcp -> 0.0.0.0:8090", uma linha por
+        # publicacao (v4 e v6). E' estavel, ao contrario de {{.Ports}}, que
+        # mistura portas publicadas e apenas expostas na mesma string.
+        if docker port "$CONTAINER" 2>/dev/null | grep -q ":$P$"; then
             echo "  [OK] $P em uso pelo proprio $CONTAINER"
         else
             echo "  [ATENCAO] porta $P ja ocupada por ${DONO:-algo}"
