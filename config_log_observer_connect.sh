@@ -67,6 +67,27 @@ if [ ${#LOC_PASS} -lt 8 ]; then
     exit 1
 fi
 
+# Guarda contra um tiro no pe: se USUARIO_LOC apontasse para uma conta
+# administrativa, o passo [4/6] faria `-d roles=logobserver` nela, SUBSTITUINDO
+# os papeis existentes. O admin perderia o papel de administrador e ninguem
+# mais entraria no Splunk para desfazer.
+case "$USUARIO_LOC" in
+    admin|sc_admin|splunk-system-user)
+        echo
+        echo "[ERRO] USUARIO_LOC=$USUARIO_LOC nao e' permitido."
+        echo
+        echo "  Este script ATRIBUI o papel '$PAPEL' a conta informada,"
+        echo "  substituindo os papeis que ela tiver. Em uma conta"
+        echo "  administrativa isso removeria o acesso de admin."
+        echo
+        echo "  Se a intencao e' mesmo usar o admin no Log Observer Connect,"
+        echo "  nao rode este script: basta digitar admin e a senha do admin"
+        echo "  direto no formulario do Observability. Mas pense duas vezes -"
+        echo "  essa credencial fica guardada na nuvem e da' administracao"
+        echo "  total do seu Splunk, que esta com a 8089 exposta."
+        exit 1 ;;
+esac
+
 api() { docker exec "$CONTAINER" curl -s -k -u "admin:$SPLUNK_ADMIN_PASS" "$@"; }
 
 
