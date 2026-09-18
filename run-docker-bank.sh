@@ -1170,33 +1170,33 @@ if docker ps --format '{{.Names}}' | grep -qx "splunk-enterprise"; then
     # config_splunk_enterprise.sh com PORTA_WEB= veria a porta errada aqui.
     PORTA_SPLUNK_WEB=$(docker port splunk-enterprise 8000 2>/dev/null | head -1 | sed 's/.*://')
 
-    echo
-    echo "--------------------------------------------------"
-    echo "LOGS NO SPLUNK ENTERPRISE"
-    echo "--------------------------------------------------"
-    echo
-    echo "  Splunk Web: http://${IP:-<ip-da-ec2>}:${PORTA_SPLUNK_WEB:-8090}"
-    echo "  Usuario:    admin"
-    echo "  Senha:      Teste@123   (padrao do config_splunk_enterprise.sh)"
-    echo
-    echo "  Em Search & Reporting, com Time range = Last 24 hours:"
-    echo
-    echo "    index=main | head 50"
-    echo "    index=main sourcetype=otel | head 50"
-    echo
-    echo "  Filtrando por servico e por ambiente:"
-    echo
-    echo "    index=main service.name=dashboard"
-    echo "    index=main deployment.environment=$DEPLOYMENT_ENV"
-    echo
-    echo "  Correlacao com o APM - pegue um trace_id no Splunk Observability"
-    echo "  e procure a linha de log correspondente aqui:"
-    echo
-    echo "    index=main trace_id=<cole-o-trace-id>"
+    # echo
+    # echo "--------------------------------------------------"
+    # echo "LOGS NO SPLUNK ENTERPRISE"
+    # echo "--------------------------------------------------"
+    # echo
+    # echo "  Splunk Web: http://${IP:-<ip-da-ec2>}:${PORTA_SPLUNK_WEB:-8090}"
+    # echo "  Usuario:    admin"
+    # echo "  Senha:      Teste@123   (padrao do config_splunk_enterprise.sh)"
+    # echo
+    # echo "  Em Search & Reporting, com Time range = Last 24 hours:"
+    # echo
+    # echo "    index=main | head 50"
+    # echo "    index=main sourcetype=otel | head 50"
+    # echo
+    # echo "  Filtrando por servico e por ambiente:"
+    # echo
+    # echo "    index=main service.name=dashboard"
+    # echo "    index=main deployment.environment=$DEPLOYMENT_ENV"
+    # echo
+    # echo "  Correlacao com o APM - pegue um trace_id no Splunk Observability"
+    # echo "  e procure a linha de log correspondente aqui:"
+    # echo
+    # echo "    index=main trace_id=<cole-o-trace-id>"
 
     if [ "$LOGS_EXPORTER" = "otlp" ]; then
         echo
-        echo "  ✅ O envio de logs esta LIGADO nesta execucao."
+        # echo "  ✅ O envio de logs esta LIGADO nesta execucao."
     else
         echo
         echo "  ⚠️ O envio de logs esta DESLIGADO (OTEL_LOGS_EXPORTER=$LOGS_EXPORTER)."
