@@ -174,9 +174,17 @@ else
 fi
 
 # shellcheck disable=SC2086
+# ATENCAO: a documentacao da Splunk lista apenas 'search' e 'edit_tokens_own',
+# mas na pratica o endpoint que o formulario chama
+# (GET /services/authorization/tokens) responde:
+#   "requires capability: edit_tokens_all or list_tokens_all"
+# Sem list_tokens_all a conexao falha com o generico "Unable to connect".
+# Usamos list_tokens_all (somente leitura) em vez de edit_tokens_all, que
+# permitiria criar token para qualquer usuario.
 RESP_PAPEL=$(api -X POST "$METODO_URL" $CAMPO_NOME \
     -d capabilities=search \
     -d capabilities=edit_tokens_own \
+    -d capabilities=list_tokens_all \
     -d srchIndexesAllowed="$INDICE" \
     -d srchIndexesDefault="$INDICE" \
     -d srchJobsQuota=40 \
@@ -232,7 +240,10 @@ case "$COD_TOKENS" in
     401)
         echo "  [ERRO] HTTP 401 - credencial invalida para $USUARIO_LOC." ;;
     403)
-        echo "  [ERRO] HTTP 403 - falta a capacidade edit_tokens_own no papel $PAPEL." ;;
+        echo "  [ERRO] HTTP 403 - falta capacidade no papel $PAPEL."
+        echo "         O endpoint exige list_tokens_all (ou edit_tokens_all)."
+        echo "         Se o papel ja existia de uma versao anterior do script,"
+        echo "         rode de novo: ele atualiza as capacidades." ;;
     400|500)
         echo "  [ERRO] HTTP $COD_TOKENS - provavelmente a autenticacao por token"
         echo "         esta desligada. Habilite em Settings > Tokens." ;;
