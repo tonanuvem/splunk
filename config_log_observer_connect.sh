@@ -214,7 +214,39 @@ fi
 # ------------------------------------------------------------
 
 echo
-echo "[5/6] Testando a conta com uma busca real"
+echo "[5/6] Testando o MESMO endpoint que o formulario usa"
+
+# O formulario do Observability chama /services/authorization/tokens. Testar
+# exatamente ele, com a conta de servico, separa as tres causas possiveis do
+# "Unable to connect" que a tela mostra -- que e' uma mensagem generica e
+# aparece tanto para rede quanto para permissao ou token auth desligado.
+COD_TOKENS=$(docker exec "$CONTAINER" curl -s -k -o /dev/null -w "%{http_code}" \
+    -u "$USUARIO_LOC:$LOC_PASS" \
+    "https://localhost:8089/services/authorization/tokens?output_mode=json" 2>/dev/null)
+
+case "$COD_TOKENS" in
+    200)
+        echo "  [OK] HTTP 200 - conta, permissao e token auth estao corretos."
+        echo "       Se o formulario ainda disser 'Unable to connect', o que"
+        echo "       falta e' liberar a 8089 para os IPs da Splunk (secao final)." ;;
+    401)
+        echo "  [ERRO] HTTP 401 - credencial invalida para $USUARIO_LOC." ;;
+    403)
+        echo "  [ERRO] HTTP 403 - falta a capacidade edit_tokens_own no papel $PAPEL." ;;
+    400|500)
+        echo "  [ERRO] HTTP $COD_TOKENS - provavelmente a autenticacao por token"
+        echo "         esta desligada. Habilite em Settings > Tokens." ;;
+    *)
+        echo "  [AVISO] HTTP ${COD_TOKENS:-<sem resposta>} - resposta inesperada." ;;
+esac
+
+echo
+echo "  Para repetir de fora, do seu proprio computador:"
+echo "    curl -k -u $USUARIO_LOC:'$LOC_PASS' \\"
+echo "      \"https://\${IP:-<ip>}:8089/services/authorization/tokens?output_mode=json\""
+
+echo
+echo "[5b/6] Testando a conta com uma busca real"
 
 # Nao adianta criar e torcer: rodamos uma busca como o proprio usuario.
 TESTE=$(docker exec "$CONTAINER" curl -s -k -u "$USUARIO_LOC:$LOC_PASS" \
