@@ -370,9 +370,9 @@ echo "    Splunk platform URL:    https://${IP:-<ip-da-ec2>}:8089"
 echo "    Connection name:        fiap"
 echo "    Certificado:            /tmp/splunk-loc-cert.pem"
 echo
-echo "------------------------------------------------------------"
+# echo "------------------------------------------------------------"
 cat /tmp/splunk-loc-cert.pem 
-echo "------------------------------------------------------------"
+# echo "------------------------------------------------------------"
 # echo
 # echo "  A nuvem da Splunk abre conexao PARA a sua EC2. Sem a regra no"
 # echo "  Security Group, o formulario falha por timeout."
