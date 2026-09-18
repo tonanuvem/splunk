@@ -3,3 +3,8 @@ sudo ~/splunk/config_docker_otel.sh
 
 # 2. Splunk Enterprise — precisa vir antes do instalador da aplicação:
 sudo ~/splunk/config_splunk_enterprise.sh
+
+echo ""
+echo "###### FIM DAS CONFIGURAÇÕES DO SPLUNK ######"
+echo ""
+echo ""
