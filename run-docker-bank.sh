@@ -27,7 +27,81 @@ DEPLOYMENT_ENV="${DEPLOYMENT_ENV:-lab-fiap}"
 
 # Token de RUM (opcional). Se vazio, o frontend sobe sem RUM.
 # Crie em: Settings > Access Tokens > (token) > Authorization Scopes > RUM
+#
+# Ordem de precedencia: variavel de ambiente > .env da execucao anterior >
+# o que o aluno digitar. Esse token e' PUBLICO por natureza (vai embutido na
+# pagina que o navegador baixa), entao pode aparecer na tela sem problema --
+# ao contrario do SPLUNK_ACCESS_TOKEN, que nunca deve ser exibido.
 SPLUNK_RUM_TOKEN="${SPLUNK_RUM_TOKEN:-}"
+
+perguntar_rum() {
+
+    if [ -n "$SPLUNK_RUM_TOKEN" ]; then
+        return 0
+    fi
+
+    # Reaproveita o da execucao anterior, para reinstalar nao exigir
+    # digitar de novo.
+    if [ -f "$BASE/.env" ]; then
+        SPLUNK_RUM_TOKEN=$(grep -E '^SPLUNK_RUM_TOKEN=' "$BASE/.env" 2>/dev/null \
+            | cut -d= -f2- | tr -d '"' | head -1) || true
+        if [ -n "$SPLUNK_RUM_TOKEN" ]; then
+            echo "ℹ️  RUM: reaproveitando o token da execucao anterior."
+            return 0
+        fi
+    fi
+
+    # Sem terminal (rodando por pipe, cron, CI) nao da' para perguntar:
+    # seguir sem RUM e' melhor do que travar a instalacao esperando stdin.
+    if [ ! -t 0 ]; then
+        echo "ℹ️  RUM: sem terminal interativo, seguindo sem RUM."
+        return 0
+    fi
+
+    echo
+    echo "=================================================="
+    echo " TOKEN DE RUM (opcional)"
+    echo "=================================================="
+    echo
+    echo "O RUM instrumenta o NAVEGADOR: mostra carregamento de pagina,"
+    echo "erros de JavaScript e liga o clique do usuario ao traco do"
+    echo "backend. Sem ele o resto (APM, logs, metricas) funciona igual."
+    echo
+    echo "Onde pegar, no Splunk Observability Cloud:"
+    echo "  Settings > Access Tokens > (seu token) > Authorization Scopes"
+    echo "  e marque RUM. Copie o valor do token."
+    echo
+    echo "Cole o token abaixo e tecle Enter."
+    echo "Para seguir SEM RUM, apenas tecle Enter."
+    echo
+    printf "  SPLUNK_RUM_TOKEN: "
+    read -r SPLUNK_RUM_TOKEN || true
+
+    # Tolera colar "SPLUNK_RUM_TOKEN=xxx" inteiro, aspas e espacos.
+    SPLUNK_RUM_TOKEN="${SPLUNK_RUM_TOKEN#SPLUNK_RUM_TOKEN=}"
+    SPLUNK_RUM_TOKEN=$(echo "$SPLUNK_RUM_TOKEN" | tr -d '"'"'"' \t\r\n')
+
+    if [ -z "$SPLUNK_RUM_TOKEN" ]; then
+        echo
+        echo "  Seguindo sem RUM."
+        return 0
+    fi
+
+    # Nao da' para validar o token de verdade aqui (quem valida e' o
+    # navegador do aluno, contra a Splunk). So' avisa se o formato
+    # destoar do esperado, sem bloquear.
+    if ! echo "$SPLUNK_RUM_TOKEN" | grep -qE '^[A-Za-z0-9_-]{16,}$'; then
+        echo
+        echo "  ⚠️ Esse valor nao parece um token (esperado: 20+ caracteres,"
+        echo "     sem espacos). Vou usar assim mesmo; se o RUM nao aparecer,"
+        echo "     confira em Settings > Access Tokens."
+    fi
+
+    echo
+    echo "  ✅ RUM habilitado (token de ${#SPLUNK_RUM_TOKEN} caracteres)."
+}
+
+perguntar_rum
 
 COLLECTOR_CONF="/etc/otel/collector/splunk-otel-collector.conf"
 
@@ -517,8 +591,9 @@ echo "✅ $BASE/.env"
 if [ -z "$SPLUNK_RUM_TOKEN" ]; then
 
     echo
-    echo "⚠️ SPLUNK_RUM_TOKEN vazio: o frontend sobe SEM RUM."
-    echo "   Para habilitar, rode de novo assim:"
+    echo "⚠️ Sem token de RUM: o frontend sobe SEM RUM."
+    echo "   Para habilitar depois, rode de novo e cole o token quando"
+    echo "   ele perguntar, ou passe direto:"
     echo "   SPLUNK_RUM_TOKEN=xxxx ~/instalar_bank_docker.sh $MODE"
 
 else
@@ -1187,7 +1262,8 @@ echo "Uso:"
 echo "  ~/instalar_bank_docker.sh host     # network_mode: host (padrao)"
 echo "  ~/instalar_bank_docker.sh bridge   # bridge + host.docker.internal"
 echo
-echo "Com RUM:"
+echo "O token de RUM e' perguntado durante a instalacao."
+echo "Para passar direto, sem digitar:"
 echo "  SPLUNK_RUM_TOKEN=xxxx ~/instalar_bank_docker.sh host"
 echo
 echo "=================================================="
