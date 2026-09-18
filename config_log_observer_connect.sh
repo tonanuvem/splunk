@@ -34,7 +34,10 @@ set -u
 CONTAINER="${CONTAINER:-splunk-enterprise}"
 REALM="${REALM:-us1}"
 PAPEL="logobserver"
-USUARIO_LOC="${USUARIO_LOC:-logobserver}"
+# Nome curto de proposito: usuario e senha sao os unicos campos que o aluno
+# DIGITA no formulario (URL e certificado sao colados). O papel continua
+# 'logobserver', que e' descritivo e so' aparece na administracao do Splunk.
+USUARIO_LOC="${USUARIO_LOC:-log}"
 INDICE="${INDICE:-main}"
 
 echo "============================================================"
@@ -249,6 +252,18 @@ fi
 # ------------------------------------------------------------
 # 5. A conta funciona mesmo?
 # ------------------------------------------------------------
+
+# Quem rodou a versao anterior tem uma conta 'logobserver' sobrando. Nao
+# apagamos por conta propria: pode estar em uso num formulario ja salvo.
+if [ "$USUARIO_LOC" != "logobserver" ] \
+   && api "https://localhost:8089/services/authentication/users/logobserver?output_mode=json" 2>/dev/null \
+      | grep -q '"name":"logobserver"'; then
+    echo
+    echo "  ℹ️ Existe tambem a conta antiga 'logobserver', de uma execucao"
+    echo "     anterior. Ela nao atrapalha. Para remover:"
+    echo "       docker exec $CONTAINER curl -s -k -u admin:'<senha>' -X DELETE \\"
+    echo "         https://localhost:8089/services/authentication/users/logobserver"
+fi
 
 echo
 echo "[5/6] Testando o MESMO endpoint que o formulario usa"
