@@ -123,6 +123,24 @@ done
 echo
 echo "[3/8] Container"
 
+# GLIBC_TUNABLES so entra no "docker run", isto e', na CRIACAO do container.
+# Se o usuario pediu o contorno mas o container existente foi criado sem ele,
+# recriar e' a unica forma de aplicar -- caso contrario o script daria apenas
+# "docker start" e o KV Store continuaria falhando, sem explicacao visivel.
+if [ -n "${GLIBC_TUNABLES:-}" ] \
+   && docker ps -a --format '{{.Names}}' | grep -qx "$CONTAINER" \
+   && ! docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" 2>/dev/null \
+        | grep -q '^GLIBC_TUNABLES='; then
+
+    echo "  [INFO] o container atual foi criado sem GLIBC_TUNABLES."
+    echo "         Recriando para aplicar o contorno do KV Store."
+    echo "         Os indices sao preservados (volume $VOLUME = /opt/splunk/var)."
+    echo "         Config em /opt/splunk/etc e' refeita: usuarios, papeis e"
+    echo "         tokens voltam do zero -- rode o config_log_observer_connect.sh"
+    echo "         depois, que ele recria o usuario de servico."
+    docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+fi
+
 if docker ps -a --format '{{.Names}}' | grep -qx "$CONTAINER"; then
 
     if docker ps --format '{{.Names}}' | grep -qx "$CONTAINER"; then
@@ -247,20 +265,20 @@ api -X POST "https://localhost:8089/servicesNS/nobody/splunk_httpinput/data/inpu
     -d disabled=0 -d enableSSL=0 >/dev/null 2>&1
 
 # Cria (ou reaproveita) um token dedicado ao lab
-TOKEN=$(api "https://localhost:8089/servicesNS/nobody/splunk_httpinput/data/inputs/http/martianbank?output_mode=json" 2>/dev/null \
+TOKEN=$(api "https://localhost:8089/servicesNS/nobody/splunk_httpinput/data/inputs/http/fiapbank?output_mode=json" 2>/dev/null \
         | grep -oE '"token":"[^"]+' | cut -d'"' -f4 | head -1)
 
 if [ -z "$TOKEN" ]; then
 
     api -X POST "https://localhost:8089/servicesNS/nobody/splunk_httpinput/data/inputs/http" \
-        -d name=martianbank -d index=main -d disabled=0 >/dev/null 2>&1
+        -d name=fiapbank -d index=main -d disabled=0 >/dev/null 2>&1
 
-    TOKEN=$(api "https://localhost:8089/servicesNS/nobody/splunk_httpinput/data/inputs/http/martianbank?output_mode=json" 2>/dev/null \
+    TOKEN=$(api "https://localhost:8089/servicesNS/nobody/splunk_httpinput/data/inputs/http/fiapbank?output_mode=json" 2>/dev/null \
             | grep -oE '"token":"[^"]+' | cut -d'"' -f4 | head -1)
 fi
 
 if [ -n "$TOKEN" ]; then
-    echo "  [OK] token 'martianbank' disponivel"
+    echo "  [OK] token 'fiapbank' disponivel"
 else
     echo "  [ERRO] nao foi possivel obter o token do HEC."
     echo "         Crie manualmente em Settings > Data inputs > HTTP Event Collector."
