@@ -31,6 +31,8 @@
 
 set -u
 
+DIR_SCRIPT="$(cd "$(dirname "$0")" && pwd)"
+
 CONTAINER="${CONTAINER:-splunk-enterprise}"
 REALM="${REALM:-us1}"
 PAPEL="logobserver"
@@ -56,7 +58,8 @@ if ! docker ps --format '{{.Names}}' | grep -qx "$CONTAINER"; then
 fi
 
 # Mesma senha padrao do config_splunk_enterprise.sh
-SPLUNK_ADMIN_PASS="${SPLUNK_ADMIN_PASS:-Teste@123}"
+SPLUNK_ADMIN_PASS_PADRAO="Teste@123"
+SPLUNK_ADMIN_PASS="${SPLUNK_ADMIN_PASS:-$SPLUNK_ADMIN_PASS_PADRAO}"
 
 # Senha fixa, a mesma do resto do laboratorio. Isso resolve de vez o problema
 # que a versao anterior tinha: ela sorteava uma senha nova a cada execucao, e
@@ -176,8 +179,25 @@ echo "[1b/6] KV Store"
 # no Splunk). Se ele nao sobe, o endpoint responde
 # "KVStore is not ready. Token auth system will not work." -- e o formulario
 # do Observability mostra o generico "Unable to connect".
-KV=$(docker exec -u splunk "$CONTAINER" /opt/splunk/bin/splunk show kvstore-status \
-        -auth "admin:$SPLUNK_ADMIN_PASS" 2>/dev/null | grep -iE "^\s*status" | head -1)
+ler_kvstore() {
+    docker exec -u splunk "$CONTAINER" /opt/splunk/bin/splunk show kvstore-status \
+        -auth "admin:$SPLUNK_ADMIN_PASS" 2>/dev/null | grep -iE "^\s*status" | head -1
+}
+
+# A assinatura da incompatibilidade MongoDB x kernel 6.19+ fica no mongod.log.
+# Distingui-la das causas genericas evita mandar investigar disco e CPU a toa.
+kernel_incompativel() {
+    docker exec -u splunk "$CONTAINER" sh -c \
+        "grep -l 'known incompatibility' /opt/splunk/var/log/splunk/mongod.log" \
+        >/dev/null 2>&1
+}
+
+contorno_ja_aplicado() {
+    docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" \
+        2>/dev/null | grep -q '^GLIBC_TUNABLES='
+}
+
+KV=$(ler_kvstore)
 
 echo "  ${KV:-<sem resposta>}"
 
@@ -187,64 +207,94 @@ if echo "$KV" | grep -qi "ready"; then
 
 else
 
-    # Antes de listar causas genericas, procura a assinatura da
-    # incompatibilidade MongoDB x kernel 6.19+, que nao tem conserto do lado
-    # do Splunk e mandaria o usuario investigar disco e CPU a toa.
-    if docker exec -u splunk "$CONTAINER" sh -c \
-        "grep -l 'known incompatibility' /opt/splunk/var/log/splunk/mongod.log" \
-        >/dev/null 2>&1; then
+    if kernel_incompativel; then
+
+        echo
+        echo "  CAUSA: MongoDB do KV Store x kernel $(uname -r)."
+        echo "         Faixa afetada: 6.19 a 7.0.13 (MongoDB SERVER-121912)."
+
+        # O unico contorno aplicavel sem reiniciar a maquina e' desligar o
+        # registro de rseq da glibc. Tentamos automaticamente: se resolver,
+        # o LOC segue normalmente; se nao, caimos no aviso mais abaixo.
+        if contorno_ja_aplicado; then
+            echo "  [INFO] o contorno do rseq ja esta aplicado e nao resolveu."
+        else
+            echo
+            echo "  [1/2] Aplicando o contorno automaticamente"
+            echo "        (recria o container com GLIBC_TUNABLES=glibc.pthread.rseq=0;"
+            echo "         os indices ficam no volume, leva 1 a 2 minutos)"
+
+            LOG_CONTORNO="/tmp/fiap-rseq-workaround.log"
+            if bash "$DIR_SCRIPT/config_splunk_enterprise.sh" --rseq-workaround \
+                 >"$LOG_CONTORNO" 2>&1; then
+                echo "        [OK] container recriado (log em $LOG_CONTORNO)"
+            else
+                echo "        [ERRO] a recriacao falhou. Ultimas linhas:"
+                tail -5 "$LOG_CONTORNO" 2>/dev/null | sed 's/^/          /'
+            fi
+
+            # A recriacao refaz o /opt/splunk/etc, entao a senha do admin
+            # volta a ser a padrao deste script.
+            SPLUNK_ADMIN_PASS="${SPLUNK_ADMIN_PASS_PADRAO:-$SPLUNK_ADMIN_PASS}"
+
+            echo
+            echo "  [2/2] Revalidando o KV Store"
+
+            # O KV Store sobe DEPOIS de o container ficar saudavel. Checar
+            # uma vez so' reprovaria o contorno por impaciencia, entao damos
+            # ate 2 minutos, saindo assim que ficar pronto.
+            KV=""
+            for _ in $(seq 1 24); do
+                KV=$(ler_kvstore)
+                echo "$KV" | grep -qi "ready" && break
+                sleep 5
+            done
+            echo "        ${KV:-<sem resposta>}"
+        fi
+
+        if echo "$KV" | grep -qi "ready"; then
+            echo "  [OK] KV Store pronto - o contorno resolveu."
+            KVSTORE_OK=sim
+        else
 
         echo
         echo "  [AVISO] Log Observer Connect indisponivel nesta maquina."
-        echo "          Nao e' erro de configuracao, e nao ha o que corrigir"
-        echo "          nos scripts: e' uma limitacao do kernel deste host."
         echo
-        echo "  CAUSA: incompatibilidade do MongoDB do KV Store com o kernel."
+        echo "          O contorno disponivel foi aplicado e nao resolveu."
+        echo "          Nao e' erro de configuracao nem dos scripts: o"
+        echo "          container usa o kernel do host, e nao ha ajuste"
+        echo "          dentro do Splunk que contorne isso."
         echo
         docker exec -u splunk "$CONTAINER" sh -c \
             "grep -h 'known incompatibility' /opt/splunk/var/log/splunk/mongod.log | tail -1" \
             2>/dev/null | cut -c1-200 | sed 's/^/    /'
         echo
-        echo "  O kernel desta maquina e' $(uname -r). O MongoDB embutido no KV"
-        echo "  Store nao sobe em kernel 6.19 ou mais novo (TCMalloc/rseq,"
-        echo "  MongoDB SERVER-121912). Nao ha ajuste dentro do Splunk que"
-        echo "  resolva: o container usa o kernel do host."
-        echo
-        echo "  Caminhos possiveis:"
-        echo
-        echo "   a) Trocar o kernel. A faixa afetada vai de 6.19 ate 7.0.13;"
-        echo "      este esta em $(uname -r). Fora da faixa serve tanto o"
-        echo "      7.0.14+ quanto qualquer 6.18 ou anterior. Veja o que ha:"
-        echo "        apt-cache policy linux-aws"
-        echo "      No Ubuntu 24.04 o 7.0.14 ainda nao foi publicado, mas o"
-        echo "      kernel GA 6.8 continua em noble/main e nao e' afetado."
-        echo "      Instale a imagem e fixe no GRUB antes de reiniciar:"
-        echo "        sudo apt install linux-image-6.8.0-1008-aws \\"
-        echo "                         linux-modules-6.8.0-1008-aws"
-        echo "        sudo sed -i 's|^GRUB_DEFAULT=.*|GRUB_DEFAULT=\"Advanced options for Ubuntu>Ubuntu, with Linux 6.8.0-1008-aws\"|' /etc/default/grub"
-        echo "        sudo update-grub && sudo reboot"
-        echo "      Sem fixar no GRUB a maquina volta no 7.0 e nada muda."
-        echo
-        echo "   b) Tentar o contorno de comunidade (nao oficial, 1 minuto):"
-        echo "        bash run-config.sh --rseq-workaround"
-        echo "      Use a FLAG, nao a variavel de ambiente: o sudo apaga o"
-        echo "      ambiente (env_reset) e o contorno seria pulado em silencio."
-        echo "      O container e' recriado sozinho; nao precisa remover."
-        echo
-        echo "   c) SEGUIR SEM o Log Observer Connect. Esta e' a saida pratica"
-        echo "      para a aula: o KV Store nao afeta indexacao nem busca."
-        echo "      Os logs continuam chegando e pesquisaveis no Splunk Web:"
+        echo "  O QUE CONTINUA FUNCIONANDO (ou seja: a aula nao para aqui)"
+        echo "    - Tracos e metricas no Observability Cloud: intactos."
+        echo "    - Logs indexados e pesquisaveis no Splunk Web:"
         echo "        index=main | head 50"
-        echo "      O que se perde e' apenas ve-los DENTRO do Observability."
+        echo "    Perde-se apenas ver os logs DENTRO do Observability."
         echo
-        # 78 = EX_CONFIG: o ambiente nao suporta, nao houve falha de execucao.
-        # O run-config.sh trata esse codigo como esperado e segue verde.
+        echo "  UNICA FORMA DE HABILITAR O LOC: sair da faixa de kernel"
+        echo "  afetada (6.19 a 7.0.13). Exige reiniciar a maquina, entao"
+        echo "  este script nao faz sozinho. No Ubuntu 24.04 o 7.0.14 ainda"
+        echo "  nao foi publicado, mas o kernel GA 6.8 nao e' afetado:"
+        echo "    sudo apt install linux-image-6.8.0-1008-aws \\"
+        echo "                     linux-modules-6.8.0-1008-aws"
+        echo "    sudo sed -i 's|^GRUB_DEFAULT=.*|GRUB_DEFAULT=\"Advanced options for Ubuntu>Ubuntu, with Linux 6.8.0-1008-aws\"|' /etc/default/grub"
+        echo "    sudo update-grub && sudo reboot"
+        echo "  Sem fixar no GRUB a maquina volta no 7.0 e nada muda."
+        echo
+        # 78 = EX_CONFIG: o ambiente nao suporta, nao houve falha de
+        # execucao. O run-config.sh trata esse codigo como esperado.
         exit 78
 
-    fi
+        fi
 
-    echo
-    echo "  [ERRO] O KV STORE NAO ESTA PRONTO."
+    else
+
+        echo
+        echo "  [ERRO] O KV STORE NAO ESTA PRONTO."
     echo "         Sem ele nao ha autenticacao por token, e o Log Observer"
     echo "         Connect nao conecta - por mais certos que estejam conta,"
     echo "         papel, certificado e firewall."
@@ -289,8 +339,11 @@ else
         "tail -8 /opt/splunk/var/log/splunk/mongod.log 2>/dev/null" \
         2>/dev/null | cut -c1-150 | sed 's/^/     /' 
 
-    echo
-    echo "  Corrigido o problema, rode este script de novo."
+        echo
+        echo "  Corrigido o problema, rode este script de novo."
+        exit 1
+
+    fi
 
 fi
 

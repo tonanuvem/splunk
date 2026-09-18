@@ -15,10 +15,11 @@ for ARG in "$@"; do
         -h|--help)
             echo "uso: bash run-config.sh [--rseq-workaround]"
             echo
-            echo "  --rseq-workaround  recria o Splunk Enterprise com"
-            echo "                     GLIBC_TUNABLES=glibc.pthread.rseq=0,"
-            echo "                     contorno NAO OFICIAL para o KV Store"
-            echo "                     em kernel 6.19+ (MongoDB SERVER-121912)."
+            echo "  --rseq-workaround  forca a recriacao do Splunk Enterprise"
+            echo "                     com GLIBC_TUNABLES=glibc.pthread.rseq=0."
+            echo "                     Normalmente nao e' preciso: o passo do"
+            echo "                     Log Observer Connect ja aplica sozinho"
+            echo "                     quando detecta o problema de kernel."
             exit 0 ;;
     esac
 done
