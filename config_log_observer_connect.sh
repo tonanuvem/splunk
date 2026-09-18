@@ -213,15 +213,20 @@ else
         echo
         echo "  Caminhos possiveis:"
         echo
-        echo "   a) Rodar o Splunk Enterprise numa maquina com kernel <= 6.18."
+        echo "   a) Atualizar o kernel. A faixa afetada vai de 6.19 ate 7.0.13;"
+        echo "      o 7.0.14 em diante ja corrige. Como este esta em $(uname -r),"
+        echo "      um upgrade costuma resolver sem trocar de maquina:"
+        echo "        sudo apt update && sudo apt install --only-upgrade linux-aws"
+        echo "        sudo reboot"
+        echo
+        echo "   b) Rodar o Splunk Enterprise numa maquina com kernel <= 6.18."
         echo "      Era o caso da EC2 Amazon Linux usada antes, onde funcionou."
         echo
-        echo "   b) Tentar o contorno de comunidade (nao oficial, 1 minuto):"
+        echo "   c) Tentar o contorno de comunidade (nao oficial, 1 minuto):"
         echo "        docker rm -f $CONTAINER"
-        echo "        sudo GLIBC_TUNABLES=glibc.pthread.rseq=0 \\\\"
-        echo "          ./config_splunk_enterprise.sh"
+        echo "        sudo GLIBC_TUNABLES=glibc.pthread.rseq=0 ./config_splunk_enterprise.sh"
         echo
-        echo "   c) SEGUIR SEM o Log Observer Connect. Esta e' a saida pratica"
+        echo "   d) SEGUIR SEM o Log Observer Connect. Esta e' a saida pratica"
         echo "      para a aula: o KV Store nao afeta indexacao nem busca."
         echo "      Os logs continuam chegando e pesquisaveis no Splunk Web:"
         echo "        index=main | head 50"
