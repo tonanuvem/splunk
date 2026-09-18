@@ -71,12 +71,36 @@ ler_spans() {
         | grep -v '^#'
 }
 
-ANTES=$(ler_spans)
+# Duas coisas diferentes que antes eu tratava como uma so': o endpoint estar
+# inacessivel, e o endpoint responder sem nenhuma metrica de span. A segunda e'
+# o estado NORMAL de uma maquina onde a aplicacao ainda nao subiu -- o
+# Prometheus so' cria a serie depois do primeiro span. Dizer "nao consegui ler"
+# nesse caso manda procurar problema no lugar errado.
+BRUTO=$(curl -s --max-time 5 "$INTERNAL" 2>/dev/null)
 
-if [ -z "$ANTES" ]; then
+APPS_NO_AR=$(docker ps --format '{{.Names}}' 2>/dev/null | grep -cE 'fiapbank-otel|martianbank-otel')
+
+if [ -z "$BRUTO" ] || ! echo "$BRUTO" | grep -q '^otelcol_'; then
 
     echo "⚠️ Nao consegui ler $INTERNAL"
-    echo "   (a telemetria interna escuta em 127.0.0.1:8888 - rode na propria EC2)"
+    echo "   (a telemetria interna escuta em 127.0.0.1:8888 - rode na propria maquina)"
+
+elif [ -z "$(ler_spans)" ]; then
+
+    echo "ℹ️ O endpoint responde, mas ainda NAO existe nenhuma metrica de span."
+    echo
+
+    if [ "$APPS_NO_AR" -eq 0 ]; then
+        echo "   Motivo: nenhum container da aplicacao esta rodando, entao nada"
+        echo "   enviou span algum ainda. Isso nao e' defeito."
+        echo
+        echo "   Suba a aplicacao e rode este diagnostico de novo:"
+        echo "     cd ~/splunk && bash docker-run-demo-bank.sh host"
+    else
+        echo "   Os containers estao no ar, mas nenhum span chegou ao collector."
+        echo "   Gere trafego e repita:"
+        echo "     cd ~/splunk && bash carga-locust.sh --usuarios 5"
+    fi
 
 else
 
@@ -140,6 +164,12 @@ echo
 
 printf "%-16s %-22s %-34s\n" "CONTAINER" "OTEL_SERVICE_NAME" "OTEL_EXPORTER_OTLP_ENDPOINT"
 printf "%-16s %-22s %-34s\n" "---------" "-----------------" "---------------------------"
+
+if [ "$(docker ps --format '{{.Names}}' | grep -cE 'fiapbank|martianbank')" -eq 0 ]; then
+    echo "  (nenhum container da aplicacao rodando)"
+    echo
+    echo "  Suba com: cd ~/splunk && bash docker-run-demo-bank.sh host"
+fi
 
 for C in $(docker ps --format '{{.Names}}' | grep -E 'fiapbank|martianbank'); do
 

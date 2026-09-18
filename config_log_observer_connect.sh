@@ -63,6 +63,62 @@ api() { docker exec "$CONTAINER" curl -s -k -u "admin:$SPLUNK_ADMIN_PASS" "$@"; 
 
 
 # ------------------------------------------------------------
+# 0. A porta 8089 esta mesmo alcancavel de fora?
+# ------------------------------------------------------------
+
+echo
+echo "[0/6] Alcancabilidade da porta 8089"
+
+# "Unable to connect" no formulario do Observability e' quase sempre isto:
+# a porta nao publicada em 0.0.0.0, ou o firewall/Security Group fechado.
+# Vale conferir antes de criar contas e certificados.
+
+PUB_8089=$(docker port "$CONTAINER" 8089 2>/dev/null | head -1)
+
+if [ -z "$PUB_8089" ]; then
+    echo "  [ERRO] o container nao publica a porta 8089."
+    echo "         Recrie com: sudo ./config_splunk_enterprise.sh"
+    exit 1
+fi
+
+echo "  publicada em: $PUB_8089"
+
+case "$PUB_8089" in
+    127.0.0.1:*|localhost:*)
+        echo "  [ERRO] publicada apenas no loopback - a nuvem da Splunk nao alcanca."
+        echo "         Recrie sem RESTRINGIR_MGMT:"
+        echo "           docker rm -f $CONTAINER && sudo ./config_splunk_enterprise.sh"
+        exit 1 ;;
+    *)
+        echo "  [OK] publicada em todas as interfaces" ;;
+esac
+
+if (exec 3<>/dev/tcp/localhost/8089) 2>/dev/null; then
+    echo "  [OK] responde localmente"
+else
+    echo "  [ERRO] nem localmente responde - o Splunk esta no ar?"
+    exit 1
+fi
+
+IP_PUBLICO=$(curl -s --max-time 5 checkip.amazonaws.com 2>/dev/null | tr -d '[:space:]')
+IP_LOCAL=$(hostname -I 2>/dev/null | awk '{print $1}')
+
+echo
+echo "  IP publico desta maquina: ${IP_PUBLICO:-<nao detectado>}"
+echo "  IP da interface local:    ${IP_LOCAL:-<nao detectado>}"
+echo
+echo "  ⚠️ Use o IP PUBLICO no formulario. Se os dois forem diferentes, a"
+echo "     maquina esta atras de NAT: o encaminhamento da 8089 precisa existir"
+echo "     ate ela, senao a Splunk nao chega."
+echo
+echo "  Teste decisivo, do SEU notebook (nao daqui):"
+echo "    curl -k -v --max-time 10 https://${IP_PUBLICO:-<ip>}:8089/services/server/info"
+echo
+echo "  Se der timeout, o problema e' firewall/Security Group - e nenhum"
+echo "  ajuste dentro do Splunk vai resolver."
+
+
+# ------------------------------------------------------------
 # 1. Credenciais do admin valem?
 # ------------------------------------------------------------
 
