@@ -108,8 +108,15 @@ echo "[2/8] Portas"
 for P in "$PORTA_WEB" "$PORTA_HEC" "$PORTA_S2S" "$PORTA_MGMT"; do
     if ss -lnt 2>/dev/null | grep -q ":$P "; then
         DONO=$(ss -lntp 2>/dev/null | grep ":$P " | grep -oE 'users:\(\("[^"]+' | cut -d'"' -f2 | head -1)
-        echo "  [ATENCAO] porta $P ja ocupada por ${DONO:-algo}"
-        echo "            use PORTA_WEB=, PORTA_HEC= ou PORTA_S2S= para trocar"
+        # Numa reexecucao quem ocupa a porta e' o proprio Splunk. Chamar isso
+        # de conflito assusta o aluno a toa.
+        if docker ps --format '{{.Names}} {{.Ports}}' 2>/dev/null \
+             | grep -q "^$CONTAINER .*:$P->"; then
+            echo "  [OK] $P em uso pelo proprio $CONTAINER"
+        else
+            echo "  [ATENCAO] porta $P ja ocupada por ${DONO:-algo}"
+            echo "            use PORTA_WEB=, PORTA_HEC= ou PORTA_S2S= para trocar"
+        fi
     else
         echo "  [OK] $P livre"
     fi
@@ -127,6 +134,15 @@ echo "[3/8] Container"
 # Se o usuario pediu o contorno mas o container existente foi criado sem ele,
 # recriar e' a unica forma de aplicar -- caso contrario o script daria apenas
 # "docker start" e o KV Store continuaria falhando, sem explicacao visivel.
+# O sudo apaga variaveis de ambiente por padrao (env_reset), entao aceitar
+# so GLIBC_TUNABLES= tornaria o contorno silenciosamente inativo. A flag
+# --rseq-workaround atravessa o sudo sem depender da politica do sudoers.
+for ARG in "$@"; do
+    case "$ARG" in
+        --rseq-workaround) GLIBC_TUNABLES="glibc.pthread.rseq=0" ;;
+    esac
+done
+
 if [ -n "${GLIBC_TUNABLES:-}" ] \
    && docker ps -a --format '{{.Names}}' | grep -qx "$CONTAINER" \
    && ! docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" 2>/dev/null \

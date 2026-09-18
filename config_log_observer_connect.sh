@@ -187,11 +187,6 @@ if echo "$KV" | grep -qi "ready"; then
 
 else
 
-    echo
-    echo "  [ERRO] O KV STORE NAO ESTA PRONTO."
-    echo "         Sem ele nao ha autenticacao por token, e o Log Observer"
-    echo "         Connect nao conecta - por mais certos que estejam conta,"
-    echo "         papel, certificado e firewall."
     # Antes de listar causas genericas, procura a assinatura da
     # incompatibilidade MongoDB x kernel 6.19+, que nao tem conserto do lado
     # do Splunk e mandaria o usuario investigar disco e CPU a toa.
@@ -200,7 +195,11 @@ else
         >/dev/null 2>&1; then
 
         echo
-        echo "  CAUSA IDENTIFICADA: incompatibilidade do MongoDB com o kernel."
+        echo "  [AVISO] Log Observer Connect indisponivel nesta maquina."
+        echo "          Nao e' erro de configuracao, e nao ha o que corrigir"
+        echo "          nos scripts: e' uma limitacao do kernel deste host."
+        echo
+        echo "  CAUSA: incompatibilidade do MongoDB do KV Store com o kernel."
         echo
         docker exec -u splunk "$CONTAINER" sh -c \
             "grep -h 'known incompatibility' /opt/splunk/var/log/splunk/mongod.log | tail -1" \
@@ -237,10 +236,17 @@ else
         echo "        index=main | head 50"
         echo "      O que se perde e' apenas ve-los DENTRO do Observability."
         echo
-        exit 1
+        # 78 = EX_CONFIG: o ambiente nao suporta, nao houve falha de execucao.
+        # O run-config.sh trata esse codigo como esperado e segue verde.
+        exit 78
 
     fi
 
+    echo
+    echo "  [ERRO] O KV STORE NAO ESTA PRONTO."
+    echo "         Sem ele nao ha autenticacao por token, e o Log Observer"
+    echo "         Connect nao conecta - por mais certos que estejam conta,"
+    echo "         papel, certificado e firewall."
     echo
     echo "  Causas mais comuns, em ordem:"
     echo
