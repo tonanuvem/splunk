@@ -55,16 +55,16 @@ fi
 # Mesma senha padrao do config_splunk_enterprise.sh
 SPLUNK_ADMIN_PASS="${SPLUNK_ADMIN_PASS:-Teste@123}"
 
-# Guardamos se a senha veio do ambiente: se o usuario ja existir e nenhuma
-# senha tiver sido informada, NAO mexemos nela. Antes o script trocava a senha
-# a cada execucao, o que invalidava a que ja estava no formulario do
-# Observability -- rodar de novo para corrigir uma capacidade quebrava a
-# conexao que ja funcionava.
-if [ -z "${LOC_PASS:-}" ]; then
-    LOC_PASS="Loc@$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 12)"
-    SENHA_INFORMADA=false
-else
-    SENHA_INFORMADA=true
+# Senha fixa, a mesma do resto do laboratorio. Isso resolve de vez o problema
+# que a versao anterior tinha: ela sorteava uma senha nova a cada execucao, e
+# re-rodar o script para corrigir qualquer detalhe invalidava a senha ja
+# colada no formulario do Observability. Com um valor fixo, executar de novo
+# e' inofensivo - o resultado e' sempre o mesmo.
+LOC_PASS="${LOC_PASS:-Teste@123}"
+
+if [ ${#LOC_PASS} -lt 8 ]; then
+    echo "[ERRO] A senha precisa de no minimo 8 caracteres (regra do Splunk)."
+    exit 1
 fi
 
 api() { docker exec "$CONTAINER" curl -s -k -u "admin:$SPLUNK_ADMIN_PASS" "$@"; }
@@ -211,21 +211,9 @@ echo "[4/6] Conta de servico '$USUARIO_LOC'"
 
 if api "https://localhost:8089/services/authentication/users/$USUARIO_LOC?output_mode=json" 2>/dev/null | grep -q "\"name\":\"$USUARIO_LOC\""; then
 
-    if [ "$SENHA_INFORMADA" = "true" ]; then
-
-        echo "  [OK] usuario ja existe - aplicando a senha informada"
-        api -X POST "https://localhost:8089/services/authentication/users/$USUARIO_LOC" \
-            -d password="$LOC_PASS" -d roles="$PAPEL" >/dev/null 2>&1
-
-    else
-
-        echo "  [OK] usuario ja existe - senha PRESERVADA, so' o papel foi atualizado"
-        api -X POST "https://localhost:8089/services/authentication/users/$USUARIO_LOC" \
-            -d roles="$PAPEL" >/dev/null 2>&1
-
-        SENHA_PRESERVADA=true
-
-    fi
+    echo "  [OK] usuario ja existe - reaplicando senha e papel"
+    api -X POST "https://localhost:8089/services/authentication/users/$USUARIO_LOC" \
+        -d password="$LOC_PASS" -d roles="$PAPEL" >/dev/null 2>&1
 
 else
 
@@ -248,27 +236,11 @@ echo "[5/6] Testando o MESMO endpoint que o formulario usa"
 # exatamente ele, com a conta de servico, separa as tres causas possiveis do
 # "Unable to connect" que a tela mostra -- que e' uma mensagem generica e
 # aparece tanto para rede quanto para permissao ou token auth desligado.
-if [ "${SENHA_PRESERVADA:-false}" = "true" ]; then
-
-    # Sem a senha em maos nao da' para autenticar como a conta de servico.
-    # Melhor dizer isso do que reportar um 401 que nao significa nada.
-    COD_TOKENS="pulado"
-
-else
-
-    COD_TOKENS=$(docker exec "$CONTAINER" curl -s -k -o /dev/null -w "%{http_code}" \
-        -u "$USUARIO_LOC:$LOC_PASS" \
-        "https://localhost:8089/services/authorization/tokens?output_mode=json" 2>/dev/null)
-
-fi
+COD_TOKENS=$(docker exec "$CONTAINER" curl -s -k -o /dev/null -w "%{http_code}" \
+    -u "$USUARIO_LOC:$LOC_PASS" \
+    "https://localhost:8089/services/authorization/tokens?output_mode=json" 2>/dev/null)
 
 case "$COD_TOKENS" in
-    pulado)
-        echo "  [--] teste pulado: a senha foi preservada e o script nao a conhece."
-        echo "       Rode voce mesmo, do seu computador:"
-        echo "         curl -k -u $USUARIO_LOC:'<sua-senha>' \\"
-        echo "           \"https://<ip>:8089/services/authorization/tokens?output_mode=json\""
-        echo "       200 = tudo certo | 403 = falta capacidade | 401 = senha errada" ;;
     200)
         echo "  [OK] HTTP 200 - conta, permissao e token auth estao corretos."
         echo "       Se o formulario ainda disser 'Unable to connect', o que"
@@ -372,14 +344,7 @@ echo
 echo "  No Observability Cloud: Logs > Logs Connections > Add new connection > Splunk Enterprise"
 echo
 echo "    Username:               $USUARIO_LOC"
-if [ "${SENHA_PRESERVADA:-false}" = "true" ]; then
-echo "    Password:               (inalterada - a mesma de antes)"
-echo
-echo "    Para definir uma nova:"
-echo "      sudo LOC_PASS='SuaSenha@123' ./config_log_observer_connect.sh"
-else
 echo "    Password:               $LOC_PASS"
-fi
 echo "    Splunk platform URL:    https://${IP:-<ip-da-ec2>}:8089"
 echo "    Connection name:        fiap"
 echo "    Certificado:            /tmp/splunk-loc-cert.pem"
