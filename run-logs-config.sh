@@ -5,21 +5,13 @@
 
 cd "$(dirname "$0")" || exit 1
 
-# O contorno do KV Store e' opt-in: "bash run-config.sh --rseq-workaround".
-# Ele e' repassado como FLAG, nao como variavel de ambiente, porque o sudo
-# apaga o ambiente por padrao (env_reset) e a variavel nao chegaria la'.
-ARGS_SPLUNK=""
 for ARG in "$@"; do
     case "$ARG" in
-        --rseq-workaround) ARGS_SPLUNK="--rseq-workaround" ;;
         -h|--help)
-            echo "uso: bash run-config.sh [--rseq-workaround]"
+            echo "uso: bash run-logs-config.sh"
             echo
-            echo "  --rseq-workaround  forca a recriacao do Splunk Enterprise"
-            echo "                     com GLIBC_TUNABLES=glibc.pthread.rseq=0."
-            echo "                     Normalmente nao e' preciso: o passo do"
-            echo "                     Log Observer Connect ja aplica sozinho"
-            echo "                     quando detecta o problema de kernel."
+            echo "Roda, na ordem: metricas de container, Splunk Enterprise"
+            echo "em container e o preparo do Log Observer Connect."
             exit 0 ;;
     esac
 done
@@ -29,7 +21,7 @@ done
 sudo bash ./config_docker_otel.sh
 
 # 2. Splunk Enterprise - precisa vir antes do instalador da aplicacao:
-sudo bash ./config_splunk_enterprise.sh $ARGS_SPLUNK
+sudo bash ./config_splunk_enterprise.sh
 
 # 3. Log Observer Connect: deixa voce pesquisar, dentro do Splunk Observability
 #    Cloud, logs que estao num Splunk plataforma (Enterprise ou Cloud). Os logs

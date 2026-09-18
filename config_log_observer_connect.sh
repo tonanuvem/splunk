@@ -31,8 +31,6 @@
 
 set -u
 
-DIR_SCRIPT="$(cd "$(dirname "$0")" && pwd)"
-
 CONTAINER="${CONTAINER:-splunk-enterprise}"
 REALM="${REALM:-us1}"
 PAPEL="logobserver"
@@ -220,58 +218,25 @@ else
         echo "  CAUSA: MongoDB do KV Store x kernel $(uname -r)."
         echo "         Faixa afetada: 6.19 a 7.0.13 (MongoDB SERVER-121912)."
 
-        # O unico contorno aplicavel sem reiniciar a maquina e' desligar o
-        # registro de rseq da glibc. Tentamos automaticamente: se resolver,
-        # o LOC segue normalmente; se nao, caimos no aviso mais abaixo.
+        # NAO ha contorno aplicavel aqui, e ja testamos o candidato obvio.
+        # A mensagem do MongoDB e' um PORTAO DE VERSAO: ele le o kernel e se
+        # recusa a iniciar, antes de qualquer alocacao. Confirmado no lab --
+        # com GLIBC_TUNABLES=glibc.pthread.rseq=0 aplicado no container, o
+        # mongod registrou a mesma recusa. O tunable ataca o bug de fundo do
+        # TCMalloc, que nunca chega a ser exercitado.
         if contorno_ja_aplicado; then
-            echo "  [INFO] o contorno do rseq ja esta aplicado e nao resolveu."
-            echo "         GLIBC_TUNABLES=$(tunables_do_container)"
-        else
-            echo
-            echo "  [1/2] Aplicando o contorno automaticamente"
-            echo "        (recria o container com GLIBC_TUNABLES=glibc.pthread.rseq=0;"
-            echo "         os indices ficam no volume, leva 1 a 2 minutos)"
-
-            LOG_CONTORNO="/tmp/fiap-rseq-workaround.log"
-            if bash "$DIR_SCRIPT/config_splunk_enterprise.sh" --rseq-workaround \
-                 >"$LOG_CONTORNO" 2>&1; then
-                echo "        [OK] container recriado (log em $LOG_CONTORNO)"
-            else
-                echo "        [ERRO] a recriacao falhou. Ultimas linhas:"
-                tail -5 "$LOG_CONTORNO" 2>/dev/null | sed 's/^/          /'
-            fi
-
-            # A recriacao refaz o /opt/splunk/etc, entao a senha do admin
-            # volta a ser a padrao deste script.
-            SPLUNK_ADMIN_PASS="${SPLUNK_ADMIN_PASS_PADRAO:-$SPLUNK_ADMIN_PASS}"
-
-            echo
-            echo "  [2/2] Revalidando o KV Store"
-
-            # O KV Store sobe DEPOIS de o container ficar saudavel. Checar
-            # uma vez so' reprovaria o contorno por impaciencia, entao damos
-            # ate 2 minutos, saindo assim que ficar pronto.
-            KV=""
-            for _ in $(seq 1 24); do
-                KV=$(ler_kvstore)
-                echo "$KV" | grep -qi "ready" && break
-                sleep 5
-            done
-            echo "        ${KV:-<sem resposta>}"
+            echo "  [INFO] GLIBC_TUNABLES=$(tunables_do_container) esta ativo"
+            echo "         e nao muda nada: a recusa e' anterior a ele."
         fi
 
-        if echo "$KV" | grep -qi "ready"; then
-            echo "  [OK] KV Store pronto - o contorno resolveu."
-            KVSTORE_OK=sim
-        else
 
         echo
         echo "  [AVISO] Log Observer Connect indisponivel nesta maquina."
         echo
-        echo "          O contorno disponivel foi aplicado e nao resolveu."
-        echo "          Nao e' erro de configuracao nem dos scripts: o"
-        echo "          container usa o kernel do host, e nao ha ajuste"
-        echo "          dentro do Splunk que contorne isso."
+        echo "          Nao e' erro de configuracao nem dos scripts, e nao"
+        echo "          ha contorno: o MongoDB do KV Store le a versao do"
+        echo "          kernel e se recusa a iniciar. O container usa o"
+        echo "          kernel do host, entao nada dentro do Splunk muda isso."
         echo
         docker exec -u splunk "$CONTAINER" sh -c \
             "grep -h 'known incompatibility' /opt/splunk/var/log/splunk/mongod.log | tail -1" \
@@ -297,7 +262,6 @@ else
         # execucao. O run-config.sh trata esse codigo como esperado.
         exit 78
 
-        fi
 
     else
 
