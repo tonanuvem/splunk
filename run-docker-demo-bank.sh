@@ -77,6 +77,9 @@ fi
 echo "✅ Compose:"
 docker compose version | head -1
 
+# 1. Metricas de container - antes de subir a aplicacao, para o docker_stats
+#    ja pegar tudo:
+sudo bash ~/splunk/config_docker_otel.sh
 
 # ==================================================
 # 2. GIT
