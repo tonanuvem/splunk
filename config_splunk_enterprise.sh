@@ -378,14 +378,14 @@ else
 fi
 
 echo
-echo "  HEC (collector, na propria EC2):"
-echo "               http://localhost:${PORTA_HEC}/services/collector"
-echo "  HEC (de fora da EC2):"
-echo "               http://${IP:-<ip-da-ec2>}:${PORTA_HEC}/services/collector"
-echo "  Token:       $TOKEN"
-echo "  Forwarder:   porta ${PORTA_S2S} habilitada"
-echo "  API admin:   ${BIND_MGMT:-0.0.0.0:}${PORTA_MGMT} (Splunk management)"
-echo
+# echo "  HEC (collector, na propria EC2):"
+# echo "               http://localhost:${PORTA_HEC}/services/collector"
+# echo "  HEC (de fora da EC2):"
+# echo "               http://${IP:-<ip-da-ec2>}:${PORTA_HEC}/services/collector"
+# echo "  Token:       $TOKEN"
+# echo "  Forwarder:   porta ${PORTA_S2S} habilitada"
+# echo "  API admin:   ${BIND_MGMT:-0.0.0.0:}${PORTA_MGMT} (Splunk management)"
+# echo
 # echo "  Teste o HEC de qualquer maquina:"
 # echo "    curl -k http://${IP:-<ip-da-ec2>}:${PORTA_HEC}/services/collector \\"
 # echo "      -H 'Authorization: Splunk $TOKEN' \\"
@@ -393,7 +393,7 @@ echo
 echo
 # echo "  Libere no Security Group da EC2: ${PORTA_WEB}, ${PORTA_HEC}, ${PORTA_S2S}."
 # echo "  Para prender a API admin ao loopback: RESTRINGIR_MGMT=sim"
-echo
+# echo
 # echo "  FALTA UM PASSO: ligar o envio de logs das aplicacoes."
 # echo
 # echo "    cd $BASE_DOCKER"
