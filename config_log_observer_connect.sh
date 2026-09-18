@@ -218,8 +218,8 @@ else
         echo
         echo "   b) Tentar o contorno de comunidade (nao oficial, 1 minuto):"
         echo "        docker rm -f $CONTAINER"
-        echo "        GLIBC_EXTRA='-e GLIBC_TUNABLES=glibc.pthread.rseq=0' \\"
-        echo "          sudo ./config_splunk_enterprise.sh"
+        echo "        sudo GLIBC_TUNABLES=glibc.pthread.rseq=0 \\\\"
+        echo "          ./config_splunk_enterprise.sh"
         echo
         echo "   c) SEGUIR SEM o Log Observer Connect. Esta e' a saida pratica"
         echo "      para a aula: o KV Store nao afeta indexacao nem busca."
