@@ -170,6 +170,68 @@ fi
 # ------------------------------------------------------------
 
 echo
+echo "[1b/6] KV Store"
+
+# A autenticacao por token guarda os tokens no KV Store (um MongoDB embutido
+# no Splunk). Se ele nao sobe, o endpoint responde
+# "KVStore is not ready. Token auth system will not work." -- e o formulario
+# do Observability mostra o generico "Unable to connect".
+KV=$(docker exec -u splunk "$CONTAINER" /opt/splunk/bin/splunk show kvstore-status \
+        -auth "admin:$SPLUNK_ADMIN_PASS" 2>/dev/null | grep -iE "^\s*status" | head -1)
+
+echo "  ${KV:-<sem resposta>}"
+
+if echo "$KV" | grep -qi "ready"; then
+
+    echo "  [OK] KV Store pronto"
+
+else
+
+    echo
+    echo "  [ERRO] O KV STORE NAO ESTA PRONTO."
+    echo "         Sem ele nao ha autenticacao por token, e o Log Observer"
+    echo "         Connect nao conecta - por mais certos que estejam conta,"
+    echo "         papel, certificado e firewall."
+    echo
+    echo "  Causas mais comuns, em ordem:"
+    echo
+
+    # 1) espaco em disco
+    LIVRE_MB=$(df -Pm /var/lib/docker 2>/dev/null | awk 'NR==2{print $4}')
+    [ -z "$LIVRE_MB" ] && LIVRE_MB=$(df -Pm / 2>/dev/null | awk 'NR==2{print $4}')
+    echo "  1. Espaco em disco: ${LIVRE_MB:-?} MB livres"
+    if [ -n "$LIVRE_MB" ] && [ "$LIVRE_MB" -lt 5000 ]; then
+        echo "     ⚠️ O Splunk exige 5 GB livres. Libere espaco:"
+        echo "        docker system prune -a --volumes"
+    else
+        echo "     [OK] acima do minimo de 5 GB"
+    fi
+
+    # 2) suporte a AVX na CPU
+    echo
+    if grep -qm1 avx /proc/cpuinfo 2>/dev/null; then
+        echo "  2. CPU com AVX: [OK]"
+    else
+        echo "  2. CPU SEM AVX: o MongoDB do KV Store exige AVX."
+        echo "     Nesse caso, troque o tipo de maquina - nao ha contorno."
+    fi
+
+    # 3) ainda inicializando
+    echo
+    echo "  3. Pode estar apenas inicializando. Acompanhe:"
+    echo "       docker exec $CONTAINER tail -f /opt/splunk/var/log/splunk/mongod.log"
+    echo
+    echo "  Erros recentes do KV Store:"
+    docker exec "$CONTAINER" sh -c \
+        "tail -40 /opt/splunk/var/log/splunk/splunkd.log 2>/dev/null | grep -i kvstore | tail -5" \
+        2>/dev/null | sed 's/^/     /' || echo "     (nao foi possivel ler o splunkd.log)"
+
+    echo
+    echo "  Corrigido o problema, rode este script de novo."
+
+fi
+
+echo
 echo "[2/6] Autenticacao por token"
 
 # O Log Observer Connect usa token; sem isso a conexao falha na validacao.
