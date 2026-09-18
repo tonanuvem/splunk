@@ -337,7 +337,8 @@ echo "  No Observability Cloud: Logs > Logs Connections > Add new connection > S
 echo
 echo "    Username:               $USUARIO_LOC"
 echo "    Password:               $LOC_PASS"
-echo "    Splunk Enterprise URL:  https://${IP:-<ip-da-ec2>}:8089"
+echo "    Splunk platform URL:    https://${IP:-<ip-da-ec2>}:8089"
+echo "    Connection name:        fiap"
 echo "    Certificado:            /tmp/splunk-loc-cert.pem"
 echo
 echo "------------------------------------------------------------"
