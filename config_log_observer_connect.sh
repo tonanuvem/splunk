@@ -219,12 +219,19 @@ else
     # 3) ainda inicializando
     echo
     echo "  3. Pode estar apenas inicializando. Acompanhe:"
-    echo "       docker exec $CONTAINER tail -f /opt/splunk/var/log/splunk/mongod.log"
+    echo "       docker exec -u splunk $CONTAINER tail -f /opt/splunk/var/log/splunk/mongod.log"
     echo
     echo "  Erros recentes do KV Store:"
-    docker exec "$CONTAINER" sh -c \
-        "tail -40 /opt/splunk/var/log/splunk/splunkd.log 2>/dev/null | grep -i kvstore | tail -5" \
-        2>/dev/null | sed 's/^/     /' || echo "     (nao foi possivel ler o splunkd.log)"
+    # -u splunk: o docker exec entra como 'ansible' e os logs sao do 'splunk'
+    docker exec -u splunk "$CONTAINER" sh -c \
+        "grep -i kvstore /opt/splunk/var/log/splunk/splunkd.log 2>/dev/null | tail -6" \
+        2>/dev/null | cut -c1-150 | sed 's/^/     /'
+
+    echo
+    echo "  Ultimas linhas do mongod.log:"
+    docker exec -u splunk "$CONTAINER" sh -c \
+        "tail -8 /opt/splunk/var/log/splunk/mongod.log 2>/dev/null" \
+        2>/dev/null | cut -c1-150 | sed 's/^/     /' 
 
     echo
     echo "  Corrigido o problema, rode este script de novo."
