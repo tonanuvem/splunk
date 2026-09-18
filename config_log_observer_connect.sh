@@ -234,16 +234,16 @@ echo "============================================================"
 echo " DADOS PARA O FORMULARIO"
 echo "============================================================"
 echo
-echo "  No Observability Cloud: Logs > Add new connection > Splunk Enterprise"
+echo "  No Observability Cloud: Logs > Logs Connections > Add new connection > Splunk Enterprise"
 echo
 echo "    Splunk Enterprise URL:  https://${IP:-<ip-da-ec2>}:8089"
 echo "    Username:               $USUARIO_LOC"
 echo "    Password:               $LOC_PASS"
 echo "    Certificado:            /tmp/splunk-loc-cert.pem"
 echo
-# echo "------------------------------------------------------------"
-# echo " ANTES DE CLICAR EM SALVAR: LIBERE A PORTA 8089"
-# echo "------------------------------------------------------------"
+echo "------------------------------------------------------------"
+cat /tmp/splunk-loc-cert.pem 
+echo "------------------------------------------------------------"
 # echo
 # echo "  A nuvem da Splunk abre conexao PARA a sua EC2. Sem a regra no"
 # echo "  Security Group, o formulario falha por timeout."
@@ -255,5 +255,5 @@ echo
 # echo "  Use esses IPs em vez de 0.0.0.0/0: a 8089 e' a API administrativa"
 # echo "  do Splunk, e deixa-la aberta para a internet inteira e' outra"
 # echo "  conversa, mesmo num laboratorio."
-# echo
+echo
 echo "============================================================"
