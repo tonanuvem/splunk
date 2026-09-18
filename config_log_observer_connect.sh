@@ -241,19 +241,19 @@ echo "    Username:               $USUARIO_LOC"
 echo "    Password:               $LOC_PASS"
 echo "    Certificado:            /tmp/splunk-loc-cert.pem"
 echo
-echo "------------------------------------------------------------"
-echo " ANTES DE CLICAR EM SALVAR: LIBERE A PORTA 8089"
-echo "------------------------------------------------------------"
-echo
-echo "  A nuvem da Splunk abre conexao PARA a sua EC2. Sem a regra no"
-echo "  Security Group, o formulario falha por timeout."
-echo
-echo "  Libere a 8089 (TCP) apenas para os IPs da Splunk no realm $REALM:"
-echo
-echo "    $IPS_SPLUNK"
-echo
-echo "  Use esses IPs em vez de 0.0.0.0/0: a 8089 e' a API administrativa"
-echo "  do Splunk, e deixa-la aberta para a internet inteira e' outra"
-echo "  conversa, mesmo num laboratorio."
-echo
+# echo "------------------------------------------------------------"
+# echo " ANTES DE CLICAR EM SALVAR: LIBERE A PORTA 8089"
+# echo "------------------------------------------------------------"
+# echo
+# echo "  A nuvem da Splunk abre conexao PARA a sua EC2. Sem a regra no"
+# echo "  Security Group, o formulario falha por timeout."
+# echo
+# echo "  Libere a 8089 (TCP) apenas para os IPs da Splunk no realm $REALM:"
+# echo
+# echo "    $IPS_SPLUNK"
+# echo
+# echo "  Use esses IPs em vez de 0.0.0.0/0: a 8089 e' a API administrativa"
+# echo "  do Splunk, e deixa-la aberta para a internet inteira e' outra"
+# echo "  conversa, mesmo num laboratorio."
+# echo
 echo "============================================================"
