@@ -386,37 +386,37 @@ echo "  Token:       $TOKEN"
 echo "  Forwarder:   porta ${PORTA_S2S} habilitada"
 echo "  API admin:   ${BIND_MGMT:-0.0.0.0:}${PORTA_MGMT} (Splunk management)"
 echo
-echo "  Teste o HEC de qualquer maquina:"
-echo "    curl -k http://${IP:-<ip-da-ec2>}:${PORTA_HEC}/services/collector \\"
-echo "      -H 'Authorization: Splunk $TOKEN' \\"
-echo "      -d '{\"event\":\"ola do meu notebook\"}'"
+# echo "  Teste o HEC de qualquer maquina:"
+# echo "    curl -k http://${IP:-<ip-da-ec2>}:${PORTA_HEC}/services/collector \\"
+# echo "      -H 'Authorization: Splunk $TOKEN' \\"
+# echo "      -d '{\"event\":\"ola do meu notebook\"}'"
 echo
-echo "  Libere no Security Group da EC2: ${PORTA_WEB}, ${PORTA_HEC}, ${PORTA_S2S}."
-echo "  Para prender a API admin ao loopback: RESTRINGIR_MGMT=sim"
+# echo "  Libere no Security Group da EC2: ${PORTA_WEB}, ${PORTA_HEC}, ${PORTA_S2S}."
+# echo "  Para prender a API admin ao loopback: RESTRINGIR_MGMT=sim"
 echo
-echo "  FALTA UM PASSO: ligar o envio de logs das aplicacoes."
-echo
-echo "    cd $BASE_DOCKER"
-echo "    sed -i 's/^OTEL_LOGS_EXPORTER=.*/OTEL_LOGS_EXPORTER=otlp/' .env"
-echo "    cd ~/splunk && bash docker-run-demo-bank.sh host"
-echo "    # (ou o atalho ~/instalar_bank_docker.sh host, gerado pelo comando acima)"
-echo
-echo "  Para incluir tambem o stdout de Node/nginx/UI, suba com o override:"
-echo
-echo "    docker compose -f docker-compose-network-mode-host.yml \\"
-echo "                   -f docker-compose-logs-fluentd.yml up -d"
-echo
-echo "  Depois, no Splunk Web, procure em Search & Reporting:"
-echo
-echo "    index=main | head 50"
-echo "    index=main sourcetype=otel | head 50"
-echo
-echo "  Os logs das apps Python carregam trace_id e span_id, entao da' para"
-echo "  pular do span no APM para a linha de log correspondente."
-echo
-echo "  Observacao: o Log Observer Connect (ver estes logs dentro do"
-echo "  Observability Cloud) exige que este Splunk seja alcancavel pela"
-echo "  nuvem da Splunk. Numa EC2 de laboratorio, o caminho pratico e'"
-echo "  pesquisar direto no Splunk Web acima."
-echo
+# echo "  FALTA UM PASSO: ligar o envio de logs das aplicacoes."
+# echo
+# echo "    cd $BASE_DOCKER"
+# echo "    sed -i 's/^OTEL_LOGS_EXPORTER=.*/OTEL_LOGS_EXPORTER=otlp/' .env"
+# echo "    cd ~/splunk && bash docker-run-demo-bank.sh host"
+# echo "    # (ou o atalho ~/instalar_bank_docker.sh host, gerado pelo comando acima)"
+# echo
+# echo "  Para incluir tambem o stdout de Node/nginx/UI, suba com o override:"
+# echo
+# echo "    docker compose -f docker-compose-network-mode-host.yml \\"
+# echo "                   -f docker-compose-logs-fluentd.yml up -d"
+# echo
+# echo "  Depois, no Splunk Web, procure em Search & Reporting:"
+# echo
+# echo "    index=main | head 50"
+# echo "    index=main sourcetype=otel | head 50"
+# echo
+# echo "  Os logs das apps Python carregam trace_id e span_id, entao da' para"
+# echo "  pular do span no APM para a linha de log correspondente."
+# echo
+# echo "  Observacao: o Log Observer Connect (ver estes logs dentro do"
+# echo "  Observability Cloud) exige que este Splunk seja alcancavel pela"
+# echo "  nuvem da Splunk. Numa EC2 de laboratorio, o caminho pratico e'"
+# echo "  pesquisar direto no Splunk Web acima."
+# echo
 echo "============================================================"
