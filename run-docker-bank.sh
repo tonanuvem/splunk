@@ -1256,16 +1256,16 @@ echo "=================================================="
 echo " SCRIPT CRIADO"
 echo "=================================================="
 echo
-echo "~/instalar_bank_docker.sh"
-echo
-echo "Uso:"
-echo "  ~/instalar_bank_docker.sh host     # network_mode: host (padrao)"
-echo "  ~/instalar_bank_docker.sh bridge   # bridge + host.docker.internal"
-echo
-echo "O token de RUM e' perguntado durante a instalacao."
-echo "Para passar direto, sem digitar:"
-echo "  SPLUNK_RUM_TOKEN=xxxx ~/instalar_bank_docker.sh host"
-echo
+# echo "~/instalar_bank_docker.sh"
+# echo
+# echo "Uso:"
+# echo "  ~/instalar_bank_docker.sh host     # network_mode: host (padrao)"
+# echo "  ~/instalar_bank_docker.sh bridge   # bridge + host.docker.internal"
+# echo
+# echo "O token de RUM e' perguntado durante a instalacao."
+# echo "Para passar direto, sem digitar:"
+# echo "  SPLUNK_RUM_TOKEN=xxxx ~/instalar_bank_docker.sh host"
+# echo
 echo "=================================================="
 echo "Executando script"
 ~/instalar_bank_docker.sh "$@"
