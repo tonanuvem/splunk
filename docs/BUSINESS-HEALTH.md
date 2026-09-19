@@ -18,7 +18,7 @@ navegador  →  dashboard (BFF)  →  serviço de domínio  →  MongoDB
 ```
 
 Isso dá uma relação **1:1 entre rota e função de negócio**. É a condição que
-torna as *Business Workflows* do APM utilizáveis sem tocar em código: cada
+torna as *Business Transactions* do APM utilizáveis sem tocar em código: cada
 regra vira uma funcionalidade, com nome de negócio em vez de nome técnico.
 
 ---
@@ -42,12 +42,12 @@ regra vira uma funcionalidade, com nome de negócio em vez de nome técnico.
 
 ## Onde isso aparece nos dashboards que você já tem
 
-### 1. APM → Business Workflows — *o mais próximo do negócio*
+### 1. APM → Business Transactions — *o mais próximo do negócio*
 
 Este é o recurso feito exatamente para isto. Ele agrupa traços inteiros sob um
 nome que **você** escolhe, e produz taxa de erro, latência e volume por nome.
 
-**Como criar** — `Settings > APM Configuration > Business Workflow Rules`,
+**Como criar** — `Settings > APM Configuration > Business transaction rule`,
 uma regra por funcionalidade:
 
 Em todas: **Rule type** `Service`, **Service** `dashboard`,
@@ -78,7 +78,8 @@ Ancore no `dashboard`, não no serviço de domínio: com o RUM ligado a raiz do
 traço é o navegador, e prender a regra ao BFF mantém o nome estável.
 
 **Onde ver depois de criadas:**
-- `APM > Business Workflows` — lista com RED por funcionalidade.
+- `APM > Business Workflows` — lista com RED por funcionalidade (o menu
+  ainda usa o nome antigo; a regra que a alimenta chama-se transaction).
 - Dashboard pronto **`APM business transactions`** (grupo *Built-in*, que já
   aparece na sua tela de Dashboards) — é a visão de negócio já montada.
 
