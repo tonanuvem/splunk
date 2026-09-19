@@ -109,11 +109,24 @@ textarea{resize:vertical; min-height:62px; line-height:1.5}
 .row>.field{flex:1 1 220px; min-width:0}
 
 /* ---------- jornadas ---------- */
-.chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px}
+/* Grade 3x2: a numeracao nao e' enfeite -- e' o numero do grupo na
+   distribuicao da atividade, entao cada aluno acha a sua pela posicao. */
+.chips{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px;
+}
+@media (max-width:620px){ .chips{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:380px){ .chips{grid-template-columns:1fr} }
 .chip{
   border:1px solid var(--line-strong); background:var(--surface-2); color:var(--ink-soft);
-  border-radius:99px; padding:6px 13px; font-size:13.5px; cursor:pointer; font-weight:500;
+  border-radius:8px; padding:9px 12px; font-size:13.5px; cursor:pointer; font-weight:500;
+  text-align:left; display:flex; align-items:baseline; gap:8px; min-width:0;
 }
+.chip-n{
+  font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-faint);
+  font-weight:500; flex:none;
+}
+.chip[aria-pressed="true"] .chip-n{color:inherit; opacity:.7}
+.chip-t{min-width:0; overflow-wrap:anywhere}
 .chip[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:var(--on-accent); font-weight:600}
 
 .ref{
@@ -308,15 +321,36 @@ const el = id => document.getElementById(id);
 let jornada = "";
 
 /* ---------- monta pontos de falha ---------- */
-el("falhas").innerHTML = [1,2,3].map(n => `
+// Um exemplo por linha, de propósito em naturezas diferentes: serviço,
+// dependência compartilhada e algo que não é serviço nenhum. Os três
+// doem no cliente; nenhum deles é "o que quebra com mais frequência".
+const EX_FALHA = [
+  {a:"ex.: o serviço de domínio para de responder",
+   b:"ex.: a operação não conclui e ele não sabe se valeu",
+   c:"ex.: taxa de erro da Business Workflow no APM"},
+  {a:"ex.: o banco compartilhado fica lento ou indisponível",
+   b:"ex.: tela carregando até desistir",
+   c:"ex.: latência p90 da workflow — a causa fica invisível (Inferred Service)"},
+  {a:"ex.: algo fora do backend — permissão negada, sessão vencida, tela quebrada",
+   b:"ex.: acredita que deu certo, e não deu",
+   c:"ex.: só o RUM enxerga; não há erro nenhum no servidor"}
+];
+
+el("falhas").innerHTML = [1,2,3].map(n => {
+  const x = EX_FALHA[n-1];
+  return `
   <div class="falha">
     <span class="falha-n">${n}</span>
     <div class="falha-f">
-      <div><label for="f${n}a">Ponto de falha</label><input type="text" id="f${n}a"></div>
-      <div><label for="f${n}b">O que o cliente vê</label><input type="text" id="f${n}b"></div>
-      <div><label for="f${n}c">Como eu detectaria</label><input type="text" id="f${n}c"></div>
+      <div><label for="f${n}a">Ponto de falha</label>
+        <input type="text" id="f${n}a" placeholder="${x.a}"></div>
+      <div><label for="f${n}b">O que o cliente vê</label>
+        <input type="text" id="f${n}b" placeholder="${x.b}"></div>
+      <div><label for="f${n}c">Como eu detectaria</label>
+        <input type="text" id="f${n}c" placeholder="${x.c}"></div>
     </div>
-  </div>`).join("");
+  </div>`;
+}).join("");
 
 /* ---------- monta SLIs ---------- */
 el("slis").innerHTML = SLIS.map(s => `
@@ -344,8 +378,10 @@ el("slis").innerHTML = SLIS.map(s => `
   </div>`).join("");
 
 /* ---------- jornadas ---------- */
-el("chips").innerHTML = Object.entries(JORNADAS).map(([k,j]) =>
-  `<button class="chip" type="button" data-j="${k}" aria-pressed="false">${j.nome}</button>`).join("");
+el("chips").innerHTML = Object.entries(JORNADAS).map(([k,j],i) =>
+  `<button class="chip" type="button" data-j="${k}" aria-pressed="false">
+     <span class="chip-n">${i+1} -</span><span class="chip-t">${j.nome}</span>
+   </button>`).join("");
 
 function pintarJornada(){
   document.querySelectorAll(".chip").forEach(c =>
