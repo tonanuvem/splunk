@@ -384,12 +384,13 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
 <section>
   <div class="step"><span class="num">5</span><h2>Valide o SLO derrubando a jornada</h2></div>
   <p class="hint">Um SLO só é real quando você vê o orçamento queimar. Crie a
-  Business Workflow e o detector no Splunk, derrube a dependência e observe o
+  Business Transaction e o detector no Splunk, derrube a dependência e observe o
   que acontece — no seu indicador e na tela do cliente.</p>
 
   <div class="field">
-    <label for="wf-nome">Nome da Business Workflow criada no APM</label>
-    <input type="text" id="wf-nome" placeholder="ex.: Transferência entre contas">
+    <label for="wf-nome">Nome da Business Transaction criada no APM</label>
+    <input type="text" id="wf-nome" placeholder="escolha a jornada no item 1">
+    <p class="ex">Vem da jornada do item 1. Mude se você nomeou diferente no Splunk.</p>
   </div>
 
   <label>Agora derrube a persistência e refaça a jornada no navegador</label>
@@ -580,6 +581,19 @@ el("chips").innerHTML = Object.entries(JORNADAS).map(([k,j],i) =>
      <span class="chip-n">${i+1} -</span><span class="chip-t">${j.nome}</span>
    </button>`).join("");
 
+// O nome da Business Transaction e' o mesmo que o card da regra mostra no
+// item 1, entao nao faz sentido pedir de novo. Preenche quando o campo esta
+// vazio ou quando ainda guarda a sugestao de OUTRA jornada -- nunca por cima
+// de um nome que o aluno digitou.
+const NOMES_SUGERIDOS = Object.values(JORNADAS).map(j => j.regra.nome);
+
+function preencherWorkflow(j){
+  const campo = el("wf-nome");
+  if (!campo || !j) return;
+  const atual = campo.value.trim();
+  if (!atual || NOMES_SUGERIDOS.includes(atual)) campo.value = j.regra.nome;
+}
+
 function pintarJornada(){
   document.querySelectorAll(".chip").forEach(c =>
     c.setAttribute("aria-pressed", String(c.dataset.j === jornada)));
@@ -589,6 +603,7 @@ function pintarJornada(){
   if (j){
     el("g-crit").textContent = j.regra.crit + "  \u2192  " + j.regra.val;
     el("g-nome").textContent = j.regra.nome;
+    preencherWorkflow(j);
     el("c-cen").textContent = "(--cenario " + j.cenario + ")";
     el("c-cmd").innerHTML = '<span class="p">$ </span>bash ~/splunk/carga-locust.sh ' +
       '--cenario ' + j.cenario + ' --usuarios 10 --continuo';
@@ -704,7 +719,7 @@ function planilha(d){
     ["Evento que representa sucesso", d.sucesso],
     [],
     ["VALIDAÇÃO PRÁTICA (docker stop fiap-mongodb)"],
-    ["Business Workflow criada", d["wf-nome"]],
+    ["Business Transaction criada", d["wf-nome"]],
     ["O SLI capturou a falha?", d["q-capturou"]],
     ["Tempo até capturar (min)", d["q-tempo"]],
     ["O que o cliente viu antes do alerta", d["q-cliente"]],

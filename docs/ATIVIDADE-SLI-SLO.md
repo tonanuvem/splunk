@@ -120,7 +120,7 @@ proteger esse número? Se não, o SLO está apertado demais.
 
 ## Passo 6 — Implemente no Splunk (10 min)
 
-1. `Settings > APM Configuration > Business Workflow Rules` — crie a workflow
+1. `Settings > APM Configuration > Business Workflow Rules` — crie a Business Transaction
    da sua jornada, com **nome de negócio** (ex.: `Transferência entre contas`),
    ancorada em `service = dashboard` e a operação da tabela.
 2. `Alerts > Detectors` — crie **um** detector sobre o SLI de disponibilidade,
@@ -186,7 +186,7 @@ pelo nginx é o download normal do navegador — a página detecta onde está.
 | SLI de latência | |
 | SLI de falha relevante | |
 | SLOs propostos + justificativa | |
-| Business Workflow criada | |
+| Business Transaction criada | |
 | O SLI capturou a falha do `docker stop`? Em quanto tempo? | |
 | O que o cliente viu antes de o alerta disparar | |
 | Impacto no cliente | |
