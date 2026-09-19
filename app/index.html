@@ -291,9 +291,9 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
   <div class="step"><span class="num">1</span><h2>Identificação</h2></div>
   <p class="hint">Escolha a jornada do seu grupo. O quadro de referência mostra o caminho que ela percorre — é ponto de partida para a observação, não resposta pronta.</p>
 
-  <div class="row">
-    <div class="field" style="flex:0 1 130px"><label for="grupo">Grupo</label><input type="text" id="grupo" placeholder="3"></div>
-    <div class="field" style="flex:3 1 320px"><label for="integrantes">Integrantes</label><input type="text" id="integrantes" placeholder="Nomes separados por vírgula"></div>
+  <div class="field">
+    <label for="integrantes">Integrantes do grupo</label>
+    <input type="text" id="integrantes" placeholder="Nomes separados por vírgula">
   </div>
 
   <label>Jornada de negócio</label>
@@ -386,12 +386,6 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
   <p class="hint">Um SLO só é real quando você vê o orçamento queimar. Crie a
   Business Transaction e o detector no Splunk, derrube a dependência e observe o
   que acontece — no seu indicador e na tela do cliente.</p>
-
-  <div class="field">
-    <label for="wf-nome">Nome da Business Transaction criada no APM</label>
-    <input type="text" id="wf-nome" placeholder="escolha a jornada no item 1">
-    <p class="ex">Vem da jornada do item 1.</p>
-  </div>
 
   <label>Agora derrube a persistência e refaça a jornada no navegador</label>
   <p class="cmd"><span class="p">$ </span>docker stop fiap-mongodb</p>
@@ -581,19 +575,6 @@ el("chips").innerHTML = Object.entries(JORNADAS).map(([k,j],i) =>
      <span class="chip-n">${i+1} -</span><span class="chip-t">${j.nome}</span>
    </button>`).join("");
 
-// O nome da Business Transaction e' o mesmo que o card da regra mostra no
-// item 1, entao nao faz sentido pedir de novo. Preenche quando o campo esta
-// vazio ou quando ainda guarda a sugestao de OUTRA jornada -- nunca por cima
-// de um nome que o aluno digitou.
-const NOMES_SUGERIDOS = Object.values(JORNADAS).map(j => j.regra.nome);
-
-function preencherWorkflow(j){
-  const campo = el("wf-nome");
-  if (!campo || !j) return;
-  const atual = campo.value.trim();
-  if (!atual || NOMES_SUGERIDOS.includes(atual)) campo.value = j.regra.nome;
-}
-
 function pintarJornada(){
   document.querySelectorAll(".chip").forEach(c =>
     c.setAttribute("aria-pressed", String(c.dataset.j === jornada)));
@@ -603,7 +584,6 @@ function pintarJornada(){
   if (j){
     el("g-crit").textContent = j.regra.crit + "  \u2192  " + j.regra.val;
     el("g-nome").textContent = j.regra.nome;
-    preencherWorkflow(j);
     el("c-cen").textContent = "(--cenario " + j.cenario + ")";
     el("c-cmd").innerHTML = '<span class="p">$ </span>bash ~/splunk/carga-locust.sh ' +
       '--cenario ' + j.cenario + ' --usuarios 10 --continuo';
@@ -652,14 +632,14 @@ function pintarOrcamento(s){
 SLIS.forEach(s => el(s.id + "-alvo").addEventListener("input", () => pintarOrcamento(s)));
 
 /* ---------- campos, persistência, progresso ---------- */
-const CAMPOS = ["grupo","integrantes","resultado","sucesso","imp-cliente","imp-mercado",
-  "wf-nome","q-capturou","q-tempo","q-cliente"]
+const CAMPOS = ["integrantes","resultado","sucesso","imp-cliente","imp-mercado",
+  "q-capturou","q-tempo","q-cliente"]
   .concat([1,2].flatMap(n => [`f${n}a`,`f${n}b`,`f${n}c`]))
   .concat(SLIS.flatMap(s => [`${s.id}-txt`,`${s.id}-alvo`,`${s.id}-just`].concat(s.ms?[`${s.id}-ms`]:[])));
 
 // 18 itens contam para o progresso: os do entregável, não cada caixa de texto.
-const CONTAM = ["grupo","integrantes","resultado","sucesso","imp-cliente","imp-mercado",
-  "f1a","f2a","wf-nome","q-capturou","q-cliente"]
+const CONTAM = ["integrantes","resultado","sucesso","imp-cliente","imp-mercado",
+  "f1a","f2a","q-capturou","q-cliente"]
   .concat(SLIS.flatMap(s => [`${s.id}-txt`,`${s.id}-alvo`,`${s.id}-just`]));
 
 function medir(){
@@ -708,7 +688,6 @@ function planilha(d){
   const entregavel = [
     ["Atividades — SLIs e SLOs orientados ao negócio"],
     [],
-    ["Grupo", d.grupo],
     ["Integrantes", d.integrantes],
     ["Jornada de negócio", nomeJ],
     ["Tela (RUM)", j ? j.tela : ""],
@@ -719,7 +698,6 @@ function planilha(d){
     ["Evento que representa sucesso", d.sucesso],
     [],
     ["VALIDAÇÃO PRÁTICA (docker stop fiap-mongodb)"],
-    ["Business Transaction criada", d["wf-nome"]],
     ["O SLI capturou a falha?", d["q-capturou"]],
     ["Tempo até capturar (min)", d["q-tempo"]],
     ["O que o cliente viu antes do alerta", d["q-cliente"]],
@@ -749,6 +727,18 @@ function planilha(d){
   XLSX.utils.book_append_sheet(wb, a2, "Pontos de falha");
   XLSX.utils.book_append_sheet(wb, a3, "SLIs e SLOs");
   return wb;
+}
+
+// Sem campo "grupo", quem identifica a entrega sao os integrantes. Tres
+// primeiros nomes bastam para o instrutor distinguir os arquivos sem que o
+// nome vire uma linha inteira.
+function nomeDoGrupo(integrantes){
+  const nomes = (integrantes || "")
+    .split(/[,;]+/)
+    .map(n => semAcento(n.trim().split(/\s+/)[0] || ""))
+    .filter(Boolean)
+    .slice(0, 3);
+  return nomes.length ? nomes.join("-").slice(0, 40) : "sem-integrantes";
 }
 
 function semAcento(s){
@@ -790,7 +780,7 @@ async function exportar(){
 
   try{
     const dados = XLSX.write(planilha(d), {bookType:"xlsx", type:"array"});
-    const nome = `SLI-SLO_Grupo-${semAcento(d.grupo) || "sem-numero"}_${semAcento(JORNADAS[d.jornada]?.nome) || "jornada"}.xlsx`;
+    const nome = `SLI-SLO_${semAcento(JORNADAS[d.jornada]?.nome) || "jornada"}_${nomeDoGrupo(d.integrantes)}.xlsx`;
 
     if (downloads){
       await downloads.save({filename:nome, data:dados});

@@ -180,13 +180,13 @@ pelo nginx é o download normal do navegador — a página detecta onde está.
 
 | Item | |
 |---|---|
+| Integrantes do grupo | |
 | Jornada e resultado de negócio | |
-| 3 pontos de falha do Service Map | |
+| 2 pontos de falha do Service Map | |
 | SLI de disponibilidade | |
 | SLI de latência | |
 | SLI de falha relevante | |
 | SLOs propostos + justificativa | |
-| Business Transaction criada | |
 | O SLI capturou a falha do `docker stop`? Em quanto tempo? | |
 | O que o cliente viu antes de o alerta disparar | |
 | Impacto no cliente | |
