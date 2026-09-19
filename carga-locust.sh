@@ -33,6 +33,7 @@ CONTINUO=false
 WEB=false
 DURACAO=""
 DETALHE=false
+REBUILD=false
 CENARIO_N=0
 CENARIO_TOT=1
 
@@ -54,6 +55,7 @@ while [ $# -gt 0 ]; do
         --duracao)  DURACAO="$2";  shift 2 ;;
         --continuo) CONTINUO=true; shift ;;
         --detalhe)  DETALHE=true;  shift ;;
+        --rebuild)  REBUILD=true;  shift ;;
         --web)      WEB=true;      shift ;;
         -h|--help)
             echo "Uso: ~/carga_locust.sh [--usuarios N] [--duracao 20m] [--tempo 60s]"
@@ -63,6 +65,7 @@ while [ $# -gt 0 ]; do
             echo "  --duracao  tempo TOTAL: repete os cenarios ate acabar e para sozinho"
             echo "  --tempo    tempo de CADA cenario dentro de uma rodada"
             echo "  --detalhe  mostra a saida completa do locust, nao so' o resumo"
+            echo "  --rebuild  forca reconstruir a imagem do locust"
             exit 0 ;;
         *) echo "Opcao desconhecida: $1"; exit 1 ;;
     esac
@@ -156,6 +159,8 @@ else
 fi
 
 echo "   accounts:     $U_ACCOUNTS"
+echo "   transfer:     $U_TRANSFER"
+echo "   loan:         $U_LOAN"
 echo "   users:        $U_USERS"
 echo "   atm:          $U_ATM"
 
@@ -169,6 +174,32 @@ echo "3. PREPARANDO O LOCUST"
 echo "=================================================="
 
 LOCUST_CT="${PROJETO}-locust-1"
+LOCUST_IMG="fiap-bank-locust"
+
+# Os locustfiles sao COPIADOS para dentro da imagem, sem volume. Editar um
+# cenario no repositorio nao muda nada enquanto a imagem nao for refeita --
+# e o container antigo segue rodando o codigo velho, silenciosamente.
+cenarios_mais_novos_que_a_imagem() {
+    local DIR="$BASE/performance_locust"
+    [ -d "$DIR" ] || return 1
+
+    local CRIADA FONTE
+    CRIADA=$(docker image inspect -f '{{.Created}}' "$LOCUST_IMG" 2>/dev/null)
+    [ -z "$CRIADA" ] && return 1          # imagem nao existe: o up ja constroi
+
+    CRIADA=$(date -d "$CRIADA" +%s 2>/dev/null) || return 1
+    FONTE=$(find "$DIR" -type f -name '*.py' -printf '%T@\n' 2>/dev/null \
+            | sort -rn | head -1 | cut -d. -f1)
+    [ -z "$FONTE" ] && return 1
+
+    [ "$FONTE" -gt "$CRIADA" ]
+}
+
+if [ "$REBUILD" = "true" ] || cenarios_mais_novos_que_a_imagem; then
+    echo "♻️  Cenarios mudaram desde o build - reconstruindo a imagem..."
+    docker compose -f "$COMPOSE_FILE" --profile load build locust \
+        && docker rm -f "$LOCUST_CT" >/dev/null 2>&1
+fi
 
 if ! docker ps --format '{{.Names}}' | grep -qx "$LOCUST_CT"; then
 
