@@ -163,6 +163,9 @@ página: [entregavel-sli-slo.html](entregavel-sli-slo.html).
 | SLI de latência | |
 | SLI de falha relevante | |
 | SLOs propostos + justificativa | |
+| Business Workflow criada | |
+| O SLI capturou a falha do `docker stop`? Em quanto tempo? | |
+| O que o cliente viu antes de o alerta disparar | |
 | Impacto no cliente | |
 | Impacto no mercado | |
 | Print da Business Workflow criada | |

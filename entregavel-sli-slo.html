@@ -174,6 +174,20 @@ textarea{resize:vertical; min-height:62px; line-height:1.5}
   background:var(--surface); border:1px solid var(--line); border-radius:5px; padding:2px 7px;
 }
 
+/* ---------- validação prática ---------- */
+.cmd{
+  font-family:"IBM Plex Mono",monospace; font-size:13px;
+  background:var(--ink); color:var(--ground); border-radius:8px;
+  padding:12px 14px; margin:0 0 6px; overflow-x:auto; white-space:pre;
+}
+.cmd .p{color:var(--ink-faint)}
+.restore{
+  display:flex; gap:9px; align-items:flex-start; font-size:13px;
+  border:1px solid var(--warn); border-radius:8px; padding:11px 13px;
+  background:var(--gold-soft); margin:14px 0 18px;
+}
+.restore b{color:var(--warn)}
+
 /* ---------- rodapé ---------- */
 .export{
   border:1px solid var(--accent); background:var(--accent-soft); border-radius:12px;
@@ -257,7 +271,50 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
 </section>
 
 <section>
-  <div class="step"><span class="num">5</span><h2>Impacto no cliente e no mercado</h2></div>
+  <div class="step"><span class="num">5</span><h2>Valide o SLO derrubando a jornada</h2></div>
+  <p class="hint">Um SLO só é real quando você vê o orçamento queimar. Crie a
+  Business Workflow e o detector no Splunk, derrube a dependência e observe o
+  que acontece — no seu indicador e na tela do cliente.</p>
+
+  <div class="field">
+    <label for="wf-nome">Nome da Business Workflow criada no APM</label>
+    <input type="text" id="wf-nome" placeholder="ex.: Transferência entre contas">
+  </div>
+
+  <label>Agora derrube a persistência e refaça a jornada no navegador</label>
+  <p class="cmd"><span class="p">$ </span>docker stop fiap-mongodb</p>
+  <div class="restore">
+    <b>⟲</b>
+    <span>Ao terminar a observação, <b>restaure</b> — sem isso as outras
+    jornadas param para a turma inteira:<br>
+    <code style="font-family:'IBM Plex Mono',monospace">docker start fiap-mongodb</code></span>
+  </div>
+
+  <div class="row">
+    <div class="field" style="flex:1 1 240px">
+      <label for="q-capturou">O seu SLI capturou a falha?</label>
+      <select id="q-capturou">
+        <option value="">Selecione…</option>
+        <option>Sim, e o detector disparou</option>
+        <option>Sim, mas o detector não disparou</option>
+        <option>Parcialmente — só um dos SLIs reagiu</option>
+        <option>Não capturou</option>
+      </select>
+    </div>
+    <div class="field" style="flex:0 1 210px">
+      <label for="q-tempo">Em quanto tempo (min)</label>
+      <input type="text" id="q-tempo" inputmode="decimal" placeholder="4">
+    </div>
+  </div>
+
+  <div class="field" style="margin-bottom:0">
+    <label for="q-cliente">O que o cliente viu antes de o alerta disparar?</label>
+    <textarea id="q-cliente" placeholder="A diferença entre o que ele sofreu e o que você mediu é o que falta no seu SLI."></textarea>
+  </div>
+</section>
+
+<section>
+  <div class="step"><span class="num">6</span><h2>Impacto no cliente e no mercado</h2></div>
   <p class="hint">Duas frases. É o que liga o número à consequência — e o que justifica o SLO diante de quem não é técnico.</p>
   <div class="field"><label for="imp-cliente">Quando este SLO é violado, o cliente…</label>
     <textarea id="imp-cliente"></textarea></div>
@@ -424,13 +481,14 @@ function pintarOrcamento(s){
 SLIS.forEach(s => el(s.id + "-alvo").addEventListener("input", () => pintarOrcamento(s)));
 
 /* ---------- campos, persistência, progresso ---------- */
-const CAMPOS = ["grupo","integrantes","resultado","sucesso","imp-cliente","imp-mercado"]
+const CAMPOS = ["grupo","integrantes","resultado","sucesso","imp-cliente","imp-mercado",
+  "wf-nome","q-capturou","q-tempo","q-cliente"]
   .concat([1,2,3].flatMap(n => [`f${n}a`,`f${n}b`,`f${n}c`]))
   .concat(SLIS.flatMap(s => [`${s.id}-txt`,`${s.id}-alvo`,`${s.id}-just`].concat(s.ms?[`${s.id}-ms`]:[])));
 
 // 18 itens contam para o progresso: os do entregável, não cada caixa de texto.
 const CONTAM = ["grupo","integrantes","resultado","sucesso","imp-cliente","imp-mercado",
-  "f1a","f2a","f3a"]
+  "f1a","f2a","f3a","wf-nome","q-capturou","q-cliente"]
   .concat(SLIS.flatMap(s => [`${s.id}-txt`,`${s.id}-alvo`,`${s.id}-just`]));
 
 function medir(){
@@ -459,7 +517,8 @@ function carregar(){
   CAMPOS.forEach(c => { if (el(c) && typeof d[c] === "string") el(c).value = d[c]; });
 }
 
-CAMPOS.forEach(c => el(c)?.addEventListener("input", () => { salvar(); medir(); }));
+CAMPOS.forEach(c => ["input","change"].forEach(ev =>
+  el(c)?.addEventListener(ev, () => { salvar(); medir(); })));
 
 el("limpar").addEventListener("click", () => {
   if (!confirm("Apagar tudo o que foi preenchido neste navegador?")) return;
@@ -487,6 +546,12 @@ function planilha(d){
     [],
     ["Resultado esperado da jornada", d.resultado],
     ["Evento que representa sucesso", d.sucesso],
+    [],
+    ["VALIDAÇÃO PRÁTICA (docker stop fiap-mongodb)"],
+    ["Business Workflow criada", d["wf-nome"]],
+    ["O SLI capturou a falha?", d["q-capturou"]],
+    ["Tempo até capturar (min)", d["q-tempo"]],
+    ["O que o cliente viu antes do alerta", d["q-cliente"]],
     [],
     ["Impacto no cliente", d["imp-cliente"]],
     ["Impacto no mercado", d["imp-mercado"]],
