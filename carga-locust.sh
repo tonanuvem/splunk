@@ -166,9 +166,6 @@ rotas_do_cenario() {
     auth)
         echo "AUTENTICACAO    $U_USERS   (customer-auth)"
         echo "   POST /api/users/auth         [1] AUTENTICACAO" ;;
-    atm)
-        echo "CAIXAS          $U_ATM   (atm-locator)"
-        echo "   POST /api/atm/               [6] LOCALIZAR CAIXAS" ;;
     account)
         echo "CONTAS          $U_ACCOUNTS   (dashboard -> accounts)"
         echo "   POST /account/create         [2] ABRIR CONTA" ;;
@@ -179,11 +176,14 @@ rotas_do_cenario() {
     loan)
         echo "EMPRESTIMOS     $U_LOAN   (dashboard -> loan)"
         echo "   POST /loan/                  [5] SOLICITAR EMPRESTIMO" ;;
+    atm)
+        echo "CAIXAS          $U_ATM   (atm-locator)"
+        echo "   POST /api/atm/               [6] LOCALIZAR CAIXAS" ;;
     esac
 }
 
 if [ "$CENARIO" = "todos" ]; then
-    for C in auth atm account transaction loan; do
+    for C in auth account transaction loan atm; do
         echo; rotas_do_cenario "$C"
     done
 else
@@ -432,17 +432,18 @@ while true; do
     fi
 
     case "$CENARIO" in
-        auth)        executar auth_locust.py        "AUTENTICACAO (customer-auth)" ;;
-        atm)         executar atm_locust.py         "CAIXAS ELETRONICOS (atm-locator)" ;;
-        account)     executar account_locust.py     "CONTAS (dashboard -> accounts)" ;;
-        transaction) executar transaction_locust.py "TRANSFERENCIAS (dashboard -> transactions)" ;;
-        loan)        executar loan_locust.py        "EMPRESTIMOS (dashboard -> loan)" ;;
+        auth)        executar auth_locust.py        "[1] AUTENTICACAO (customer-auth)" ;;
+        atm)         executar atm_locust.py         "[6] CAIXAS ELETRONICOS (atm-locator)" ;;
+        account)     executar account_locust.py     "[2] CONTAS (dashboard -> accounts)" ;;
+        transaction) executar transaction_locust.py "[3][4] TRANSFERENCIAS (dashboard -> transactions)" ;;
+        loan)        executar loan_locust.py        "[5] EMPRESTIMOS (dashboard -> loan)" ;;
         todos)
-            executar auth_locust.py        "AUTENTICACAO (customer-auth)"
-            executar atm_locust.py         "CAIXAS ELETRONICOS (atm-locator)"
-            executar account_locust.py     "CONTAS (dashboard -> accounts)"
-            executar transaction_locust.py "TRANSFERENCIAS (dashboard -> transactions)"
-            executar loan_locust.py        "EMPRESTIMOS (dashboard -> loan)"
+            # Mesma ordem do item 2, que e' a numeracao dos grupos.
+            executar auth_locust.py        "[1] AUTENTICACAO (customer-auth)"
+            executar account_locust.py     "[2] CONTAS (dashboard -> accounts)"
+            executar transaction_locust.py "[3][4] TRANSFERENCIAS (dashboard -> transactions)"
+            executar loan_locust.py        "[5] EMPRESTIMOS (dashboard -> loan)"
+            executar atm_locust.py         "[6] CAIXAS ELETRONICOS (atm-locator)"
             ;;
         *)
             echo "❌ Cenario invalido: $CENARIO"
