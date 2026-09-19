@@ -109,6 +109,95 @@ ponto de entrada mantém o nome estável.
 - Dashboard pronto **`APM business transactions`** (grupo *Built-in*, que já
   aparece na sua tela de Dashboards) — é a visão de negócio já montada.
 
+### 1b. A regra Default já não basta? — análise
+
+O APM vem com uma regra **Default** ligada, que nomeia cada transação pelo
+*endpoint que iniciou o traço*. Sem configurar nada, o lab já produz nove
+transações:
+
+```
+atm-locator:GET /api      customer-auth:GET         dashboard:GET /account
+atm-locator:POST /api     customer-auth:POST /api   dashboard:POST /account
+                          customer-auth:PUT /api    dashboard:POST /loan
+                                                    dashboard:POST /transaction
+```
+
+É tentador parar por aqui. Duas coisas impedem.
+
+#### O corte por 1 segmento funde jornadas diferentes
+
+Com `Use the first 1 URI segments`, tudo que começa igual vira o mesmo nome:
+
+| Transação Default | O que ela está somando |
+|---|---|
+| `dashboard:POST /transaction` | `/transaction/` (**transferir**), `/transaction/history` (**extrato**), `/transaction/zelle/`, `/transaction/transaction-with-id` |
+| `dashboard:POST /account` | `/account/create` (**abrir conta**), `/account/allaccounts`, `/account/detail` |
+| `dashboard:POST /loan` | `/loan/` (**solicitar**), `/loan/history` (consultar) |
+| `customer-auth:POST /api` | `/api/users` (**cadastrar**), `/api/users/auth` (**login**), `/api/users/logout` |
+
+Isso não é detalhe. **Transferir** e **Extrato** são duas jornadas com SLOs
+deliberadamente diferentes — 99,9 % e 1,5 s contra 99,5 % e 1 s. Somadas num
+indicador só, nenhuma das duas é mensurável: a latência da consulta dilui a
+da transferência, e um erro na movimentação some na média das quatro rotas.
+
+**E isso tem conserto sem criar regra nenhuma.** Mudando a Default para
+`the first 3 URI segments`, cada rota real vira uma transação distinta —
+`/api/users/auth` separa de `/api/users`, `/transaction/history` separa de
+`/transaction/`, e as rotas do BFF (no máximo 2 segmentos) não são afetadas.
+Vale fazer: é um clique e melhora o padrão para todo mundo.
+
+#### O que continua faltando: o nome
+
+Mesmo com a granularidade certa, `dashboard:POST /transaction/history` é o
+nome de uma rota, não de uma função de negócio. Quem lê um painel chamado
+**Extrato da conta** não precisa saber o que é um BFF.
+
+Daí a divisão de trabalho que faz sentido:
+
+| | Regra Default | Regra explícita |
+|---|---|---|
+| Custo | zero | uma por jornada |
+| Cobertura | todo o tráfego, inclusive o que ninguém previu | só o que você declarou |
+| Nome | técnico | de negócio |
+| Serve para | **descobrir** o que existe | **comprometer-se** com um SLO |
+
+Ou seja: deixe a Default ligada em 3 segmentos como rede de segurança e mapa
+do tráfego real, e escreva regra explícita só para as jornadas que vão ter
+SLO e alerta — que no exercício é uma por grupo.
+
+#### "Por que separa GET de POST se é a mesma jornada?"
+
+A pergunta é boa, e a resposta é que **o Splunk está certo — e é justamente
+por não saber nada do seu negócio.**
+
+Em HTTP, um endpoint é o par *(método, caminho)*. `GET /account` e
+`POST /account` são operações diferentes por definição, e com frequência são
+jornadas diferentes de verdade: consultar contas não é abrir uma conta. Uma
+ferramenta que fundisse as duas estaria tomando uma decisão de domínio que
+não tem como sustentar — e erraria nesses casos.
+
+O que ela não tem como saber é o inverso: que `POST /api/users/auth` seguido
+de `GET /api/users/profile` é **uma** jornada chamada "entrar na conta", do
+ponto de vista de quem usa o banco. Essa junção exige conhecer o domínio.
+
+A conclusão vale para a aula inteira: a regra Default entrega o **agrupamento
+técnico correto**; a distância entre ele e o negócio não é um defeito da
+ferramenta, é exatamente o trabalho que sobra para as pessoas. Nomear jornada,
+escolher granularidade e decidir o que conta como sucesso são decisões de
+negócio — e é por isso que observabilidade orientada a negócio não sai de
+instrumentação automática.
+
+#### A terceira via: `workflow.name`
+
+Acima da Default há uma regra de prioridade 1 já ligada: **Global Tag
+`workflow.name`**. Se um span carregar essa tag, o valor dela vira o nome da
+transação. É o caminho por código — uma linha na aplicação
+(`span.set_attribute("workflow.name", "Transferência entre contas")`) e o nome
+de negócio nasce junto do traço, sem regra nenhuma no console.
+
+Não usamos no lab porque a proposta é não tocar no código da aplicação. Mas é
+o mais robusto dos três: o nome acompanha a jornada mesmo que a rota mude.
+
 ### 2. RUM → `Browser page health` — *a saúde vista pelo cliente*
 
 Você já tem dados aqui (a aplicação `bank-ui` já aparece no RUM). Filtrando por

@@ -195,6 +195,22 @@ cenarios_mais_novos_que_a_imagem() {
     [ "$FONTE" -gt "$CRIADA" ]
 }
 
+# O rebuild compara a imagem com os arquivos LOCAIS. Se o repositorio da
+# aplicacao estiver atrasado, o cenario corrigido no GitHub nao esta' aqui, e
+# nada parece desatualizado -- o container roda o codigo velho e ninguem ve.
+if [ -d "$BASE/.git" ]; then
+    if git -C "$BASE" fetch -q origin 2>/dev/null; then
+        ATRAS=$(git -C "$BASE" rev-list --count HEAD..origin/main 2>/dev/null || echo 0)
+        if [ "${ATRAS:-0}" -gt 0 ]; then
+            echo "⚠️  $BASE esta $ATRAS commit(s) atras do origin/main."
+            echo "    Os cenarios de carga vem DESTE diretorio, nao do GitHub."
+            echo "    Atualize antes de confiar nos numeros:"
+            echo "      git -C $BASE pull"
+            echo
+        fi
+    fi
+fi
+
 if [ "$REBUILD" = "true" ] || cenarios_mais_novos_que_a_imagem; then
     echo "♻️  Cenarios mudaram desde o build - reconstruindo a imagem..."
     docker compose -f "$COMPOSE_FILE" --profile load build locust \
