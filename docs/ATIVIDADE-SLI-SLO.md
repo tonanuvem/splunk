@@ -130,16 +130,39 @@ proteger esse número? Se não, o SLO está apertado demais.
 
 O SLO só é real quando você vê o orçamento queimar.
 
-```bash
-docker stop fiap-mongodb        # derruba a persistência
-```
-
-Rode a jornada no navegador, observe o que acontece no seu SLI e no detector.
-Depois:
+**Pré-requisito que decide o passo:** a carga precisa estar rodando. Sem
+tráfego não há requisição para falhar — o gráfico fica plano e o grupo conclui
+que o SLI não capturou nada.
 
 ```bash
-docker start fiap-mongodb
+bash ~/splunk/carga-locust.sh --duracao 20m
 ```
+
+Com a carga no ar, cada grupo derruba **o serviço da própria jornada**:
+
+| Grupo | Serviço |
+|---|---|
+| 1 Autenticação | `customer-auth` |
+| 2 Abrir conta | `accounts` |
+| 3 Transferir · 4 Extrato | `transactions` |
+| 5 Empréstimo | `loan` |
+| 6 Caixas | `atm-locator` |
+
+```bash
+docker stop $(docker ps -q -f name=<serviço>)
+```
+
+Restaurar:
+
+```bash
+docker start $(docker ps -aq -f name=<serviço>)
+```
+
+**Por que não parar o MongoDB.** Derrubaria as seis jornadas de uma vez, com
+seis grupos atrapalhando uns aos outros — e o primeiro erro só apareceria após
+cerca de 30 s de timeout do driver. Derrubando o serviço, a falha é imediata
+(conexão recusada) e fica contida no grupo. Parar o Mongo continua sendo boa
+demonstração para o instrutor fazer uma vez, com a turma toda olhando.
 
 Discuta: o seu SLI capturou a falha? Em quanto tempo? O que o **cliente** viu
 antes de o alerta disparar?

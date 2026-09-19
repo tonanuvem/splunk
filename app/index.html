@@ -390,13 +390,25 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
   Business Transaction e o detector no Splunk, derrube a dependência e observe o
   que acontece — no seu indicador e na tela do cliente.</p>
 
-  <label>Agora derrube a persistência e refaça a jornada no navegador</label>
-  <p class="cmd"><span class="p">$ </span>docker stop fiap-mongodb</p>
+  <div class="restore" style="border-color:var(--accent); background:var(--accent-soft)">
+    <b style="color:var(--accent)">1º</b>
+    <span><b>Deixe a carga rodando</b> numa outra aba antes de derrubar
+    qualquer coisa. Sem tráfego não há requisição para falhar: o gráfico
+    apenas fica plano, e você conclui que o SLI não capturou nada.<br>
+    <code style="font-family:'IBM Plex Mono',monospace">bash ~/splunk/carga-locust.sh --duracao 20m</code></span>
+  </div>
+
+  <label>Agora derrube o serviço da sua jornada</label>
+  <p class="cmd" id="q-stop"></p>
+  <p class="sub">Derrubar o serviço, e não o MongoDB, mantém o exercício
+  isolado: cada grupo quebra só o que é seu, e a falha aparece na hora.
+  Parar o banco derrubaria as seis jornadas da turma e ainda levaria
+  cerca de 30 s de timeout até o primeiro erro.</p>
+
   <div class="restore">
     <b>⟲</b>
-    <span>Ao terminar a observação, <b>restaure</b> — sem isso as outras
-    jornadas param para a turma inteira:<br>
-    <code style="font-family:'IBM Plex Mono',monospace">docker start fiap-mongodb</code></span>
+    <span>Ao terminar a observação, <b>restaure</b>:<br>
+    <code style="font-family:'IBM Plex Mono',monospace" id="q-start"></code></span>
   </div>
 
   <div class="row">
@@ -456,6 +468,7 @@ const JORNADAS = {
   auth:{nome:"Autenticação", tela:"/login", rota:"POST /api/users/auth (:8000)",
         cam:"navegador → customer-auth → mongodb:bank",
         lat:[["customer-auth","101 ms"],["mongodb","3 ms"]],
+        servico_alvo:"customer-auth",
         cenario:"auth",
         regra:{crit:'"That contain"', val:"/api/users/auth", servico:"customer-auth",
                nome:"Autenticação",
@@ -464,6 +477,7 @@ const JORNADAS = {
   conta:{nome:"Abrir conta", tela:"/new-account", rota:"POST /account/create",
         cam:"dashboard → accounts → mongodb:bank",
         lat:[["dashboard","19 ms"],["accounts","5 ms"],["mongodb","3 ms"]],
+        servico_alvo:"accounts",
         cenario:"account",
         regra:{crit:'"That contain"', val:"/account/create",
                servico:"dashboard", nome:"Abertura de conta", aviso:""}},
@@ -471,6 +485,7 @@ const JORNADAS = {
   transf:{nome:"Transferir entre contas", tela:"/transfer", rota:"POST /transaction/",
         cam:"dashboard → transactions → mongodb:bank",
         lat:[["dashboard","19 ms"],["transactions","3 ms"],["mongodb","3 ms"]],
+        servico_alvo:"transactions",
         cenario:"transaction",
         regra:{crit:'"Specific endpoints"', val:"POST /transaction/",
                servico:"dashboard", nome:"Transferência entre contas",
@@ -479,6 +494,7 @@ const JORNADAS = {
   extrato:{nome:"Extrato da conta", tela:"/transactions", rota:"POST /transaction/history",
         cam:"dashboard → transactions → mongodb:bank",
         lat:[["dashboard","19 ms"],["transactions","3 ms"],["mongodb","3 ms"]],
+        servico_alvo:"transactions",
         cenario:"transaction",
         regra:{crit:'"That contain"', val:"/transaction/history",
                servico:"dashboard", nome:"Extrato da conta", aviso:""}},
@@ -486,6 +502,7 @@ const JORNADAS = {
   emprestimo:{nome:"Solicitar empréstimo", tela:"/new-loan", rota:"POST /loan/",
         cam:"dashboard → loan → mongodb:bank",
         lat:[["dashboard","19 ms"],["loan","20 ms"],["mongodb","3 ms"]],
+        servico_alvo:"loan",
         cenario:"loan",
         regra:{crit:'"Specific endpoints"', val:"POST /loan/",
                servico:"dashboard", nome:"Solicitação de empréstimo",
@@ -494,6 +511,7 @@ const JORNADAS = {
   atm:{nome:"Localizar caixas eletrônicos", tela:"/find-atm", rota:"POST /api/atm/ (:8001)",
         cam:"navegador → atm-locator → mongodb:bank",
         lat:[["atm-locator","6 ms"],["mongodb","3 ms"]],
+        servico_alvo:"atm-locator",
         cenario:"atm",
         regra:{crit:'"Specific endpoints"', val:"POST /api/atm/", servico:"atm-locator",
                nome:"Localizar caixa eletrônico",
@@ -590,6 +608,8 @@ function pintarJornada(){
     el("g-crit").textContent = j.regra.crit + "  \u2192  " + j.regra.val;
     el("g-nome").textContent = j.regra.nome;
     el("c-cen").textContent = "(--cenario " + j.cenario + ")";
+    el("q-stop").innerHTML = '<span class="p">$ </span>docker stop $(docker ps -q -f name=' + j.servico_alvo + ')';
+    el("q-start").textContent = "docker start $(docker ps -aq -f name=" + j.servico_alvo + ")";
     el("c-cmd").innerHTML = '<span class="p">$ </span>bash ~/splunk/carga-locust.sh ' +
       '--cenario ' + j.cenario + ' --usuarios 10 --continuo';
     const av = el("g-aviso");
@@ -601,6 +621,8 @@ function pintarJornada(){
     if (refs) refs.innerHTML = "";
     el("c-cen").textContent = "";
     el("c-cmd").innerHTML = '<span class="p">$ </span>bash ~/splunk/carga-locust.sh --usuarios 10 --continuo';
+    el("q-stop").innerHTML = '<span class="p">$ </span>escolha a jornada no item 1';
+    el("q-start").textContent = "";
     return;
   }
   el("r-tela").textContent = j.tela;
