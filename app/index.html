@@ -687,11 +687,19 @@ async function exportar(){
     return;
   }
 
-  const downloads = await window.claude?.use?.("downloads");
-  if (!downloads){
-    st.className = "status err";
-    st.textContent = "Download indisponível nesta visualização. Abra o artifact em uma janela própria e tente de novo.";
-    return;
+  // A página roda em dois lugares: como artifact no claude.ai e servida por
+  // nginx no lab. No artifact o sandbox bloqueia download iniciado pela
+  // página, e a saída é a capability; servida normalmente, é o contrário --
+  // não existe capability e o download do navegador funciona.
+  const NO_ARTIFACT = typeof window.claude?.use === "function";
+  let downloads = null;
+  if (NO_ARTIFACT){
+    downloads = await window.claude.use("downloads");
+    if (!downloads){
+      st.className = "status err";
+      st.textContent = "Download não autorizado nesta visualização. Abra o artifact numa janela própria e tente de novo.";
+      return;
+    }
   }
 
   salvando = true;
@@ -702,7 +710,19 @@ async function exportar(){
   try{
     const dados = XLSX.write(planilha(d), {bookType:"xlsx", type:"array"});
     const nome = `SLI-SLO_Grupo-${semAcento(d.grupo) || "sem-numero"}_${semAcento(JORNADAS[d.jornada]?.nome) || "jornada"}.xlsx`;
-    await downloads.save({filename:nome, data:dados});
+
+    if (downloads){
+      await downloads.save({filename:nome, data:dados});
+    }else{
+      const blob = new Blob([dados], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement("a"), {href:url, download:nome});
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
     st.className = "status good";
     st.textContent = `Planilha gerada: ${nome}`;
   }catch(err){

@@ -151,7 +151,17 @@ da entrega em `.xlsx`:
 
 O preenchimento fica salvo no navegador do grupo enquanto ele trabalha. A
 planilha sai com três abas — entregável, pontos de falha e SLIs. Fonte da
-página: [entregavel-sli-slo.html](entregavel-sli-slo.html).
+página: [app/index.html](../app/index.html).
+
+Para servir a página do próprio lab, sem depender do claude.ai:
+
+```bash
+bash ~/splunk/app/atividade-sli-slo.sh
+```
+
+É o mesmo arquivo nos dois casos. A única diferença é o download da
+planilha: no artifact quem salva é a capability do claude.ai, e servida
+pelo nginx é o download normal do navegador — a página detecta onde está.
 
 ### Campos (caso o grupo prefira papel)
 
