@@ -130,15 +130,21 @@ proteger esse número? Se não, o SLO está apertado demais.
 
 O SLO só é real quando você vê o orçamento queimar.
 
-**Pré-requisito que decide o passo:** a carga precisa estar rodando. Sem
-tráfego não há requisição para falhar — o gráfico fica plano e o grupo conclui
-que o SLI não capturou nada.
+**Pré-requisito que decide o passo:** a carga precisa estar rodando — e é a
+**mesma** do passo 3, não um teste novo depois de derrubar. Sem tráfego não há
+requisição para falhar: o gráfico fica plano e o grupo conclui que o SLI não
+capturou nada.
+
+Ela precisa ser do **cenário do grupo**, não `todos`: com os cinco cenários em
+rodízio de 60 s, a jornada do grupo roda 1 minuto a cada 5, e ele pode derrubar
+o serviço numa janela em que ele nem está sendo chamado.
 
 ```bash
-bash ~/splunk/carga-locust.sh --duracao 20m
+bash ~/splunk/carga-locust.sh --cenario <auth|account|transaction|loan|atm> --duracao 20m
 ```
 
-Com a carga no ar, cada grupo derruba **o serviço da própria jornada**:
+A carga ocupa o terminal, então o `docker stop` vai num **segundo terminal**.
+Com ela no ar, cada grupo derruba **o serviço da própria jornada**:
 
 | Grupo | Serviço |
 |---|---|
