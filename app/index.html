@@ -168,6 +168,31 @@ textarea{resize:vertical; min-height:62px; line-height:1.5}
   .regra dl > dt:first-child, .ref dl > dt:first-child{margin-top:0}
 }
 
+/* ---------- carga e golden signals ---------- */
+.passo{
+  display:flex; align-items:baseline; gap:9px; margin:0 0 7px;
+  font-size:12px; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--ink-faint); font-weight:600;
+}
+.passo span{
+  font-family:"IBM Plex Mono",monospace; color:var(--accent);
+  letter-spacing:0; text-transform:none;
+}
+.sub{color:var(--ink-soft); font-size:13.5px; margin:0 0 9px; max-width:64ch}
+.sub code{font-family:"IBM Plex Mono",monospace; font-size:12.5px; background:var(--surface-2); padding:1px 5px; border-radius:4px}
+
+.sinais{border:1px solid var(--line); border-radius:10px; padding:15px 16px; margin:0 0 20px; background:var(--surface-2)}
+.sinais-t{font-size:11.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; margin-bottom:10px}
+.sinais ul{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(2,1fr); gap:8px 18px}
+@media (max-width:620px){ .sinais ul{grid-template-columns:1fr} }
+.sinais li{font-size:13px; color:var(--ink-soft); display:flex; gap:8px; align-items:baseline}
+.sinais li b{color:var(--ink); font-weight:600; flex:none; min-width:74px}
+.sinais-p{
+  margin:13px 0 0; padding-top:12px; border-top:1px solid var(--line);
+  font-size:13px; color:var(--ink-soft); line-height:1.5;
+}
+.sinais-p strong{color:var(--ink)}
+
 /* ---------- pontos de falha ---------- */
 .falhas{display:flex; flex-direction:column; gap:11px}
 .falha{display:flex; gap:11px; align-items:flex-start}
@@ -312,14 +337,41 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
 
 <section>
   <div class="step"><span class="num">3</span><h2>Três pontos de falha</h2></div>
-  <p class="hint">Abra <code>APM › Service Map</code>, filtre
+  <p class="hint">Sem tráfego o Service Map vem vazio, e você acaba
+  desenhando a arquitetura em vez de observá-la. Gere carga primeiro.</p>
+
+  <p class="passo">Primeiro · gere carga na sua jornada <span id="c-cen"></span></p>
+  <p class="cmd" id="c-cmd"><span class="p">$ </span>bash ~/splunk/carga-locust.sh --usuarios 10 --continuo</p>
+  <p class="sub">Deixe rodando numa aba do terminal até o fim da atividade —
+  o <code>--continuo</code> repete até você dar <code>Ctrl+C</code>.</p>
+
+  <p class="passo" style="margin-top:20px">Depois · observe no APM</p>
+  <p class="sub">Abra <code>APM › Service Map</code>, filtre
   <code>Environment: lab-fiap</code> na janela de <code>-15m</code> e siga a
   cadeia da sua jornada. Confira num traço real em <code>APM › Traces</code>.
   Repare se algum nó aparece <strong>tracejado</strong> — e descubra o que
-  você não consegue ver dentro dele.<br><br>
-  Escolha então os três pontos cuja falha mais dói. Não é o que tem mais chance
-  de quebrar — é o que, quebrando, <strong>impede o resultado de negócio</strong>.
-  Pelo menos um deles não deveria ser um serviço.</p>
+  você não consegue ver dentro dele.</p>
+
+  <div class="sinais">
+    <div class="sinais-t">Os quatro sinais que o APM te dá de graça</div>
+    <ul>
+      <li><b>Latência</b> quanto o cliente espera</li>
+      <li><b>Tráfego</b> quantas vezes a jornada roda</li>
+      <li><b>Erros</b> quantas vezes ela falha</li>
+      <li><b>Saturação</b> quanto falta para a dependência não aguentar</li>
+    </ul>
+    <p class="sinais-p">Use-os para responder <strong>“como eu detectaria”</strong>.
+    Mas repare em duas coisas. <strong>Saturação</strong> não vira SLI de
+    confiabilidade: ela avisa antes de doer no cliente, então é indicador de
+    capacidade. E <strong>nenhum dos quatro</strong> detecta uma jornada que
+    falhou sem erro nenhum — o segundo exemplo abaixo. Esse é o limite dos
+    Golden Signals, e a razão de existir um SLI de falha relevante.</p>
+  </div>
+
+  <p class="sub" style="margin-bottom:16px">Escolha agora os <strong>dois</strong>
+  pontos cuja falha mais dói. Não é o que tem mais chance de quebrar — é o que,
+  quebrando, <strong>impede o resultado de negócio</strong>. Um dos dois não
+  deveria ser um serviço.</p>
   <div class="falhas" id="falhas"></div>
 </section>
 
@@ -406,18 +458,21 @@ const JORNADAS = {
   auth:{nome:"Autenticação", tela:"/login", rota:"POST /api/users/auth",
         cam:"dashboard → customer-auth → mongodb:martianbank",
         lat:[["dashboard","19 ms"],["customer-auth","101 ms"],["mongodb","4 ms"]],
+        cenario:"auth",
         regra:{crit:'"That contain"', val:"/api/users/auth",
                nome:"Autenticação", aviso:""}},
 
   conta:{nome:"Abrir conta", tela:"/new-account", rota:"POST /account/create",
         cam:"dashboard → accounts → mongodb:bank",
         lat:[["dashboard","19 ms"],["accounts","5 ms"],["mongodb","3 ms"]],
+        cenario:"account",
         regra:{crit:'"That contain"', val:"/account/create",
                nome:"Abertura de conta", aviso:""}},
 
   transf:{nome:"Transferir entre contas", tela:"/transfer", rota:"POST /transaction/",
         cam:"dashboard → transactions → mongodb:bank",
         lat:[["dashboard","19 ms"],["transactions","3 ms"],["mongodb","3 ms"]],
+        cenario:"transaction",
         regra:{crit:'"Specific endpoints"', val:"POST /transaction/",
                nome:"Transferência entre contas",
                aviso:"não use <em>That contain</em> com <code>/transaction/</code>: ele casaria também com /transaction/history e /transaction/zelle/, e três jornadas virariam uma só."}},
@@ -425,12 +480,14 @@ const JORNADAS = {
   extrato:{nome:"Extrato da conta", tela:"/transactions", rota:"POST /transaction/history",
         cam:"dashboard → transactions → mongodb:bank",
         lat:[["dashboard","19 ms"],["transactions","3 ms"],["mongodb","3 ms"]],
+        cenario:"transaction",
         regra:{crit:'"That contain"', val:"/transaction/history",
                nome:"Extrato da conta", aviso:""}},
 
   emprestimo:{nome:"Solicitar empréstimo", tela:"/new-loan", rota:"POST /loan/",
         cam:"dashboard → loan → mongodb:bank",
         lat:[["dashboard","19 ms"],["loan","23 ms"],["mongodb","3 ms"]],
+        cenario:"loan",
         regra:{crit:'"Specific endpoints"', val:"POST /loan/",
                nome:"Solicitação de empréstimo",
                aviso:"não use <em>That contain</em> com <code>/loan/</code>: ele casaria também com /loan/history, que é consulta, não solicitação."}},
@@ -438,6 +495,7 @@ const JORNADAS = {
   atm:{nome:"Localizar caixas eletrônicos", tela:"/find-atm", rota:"POST /api/atm/",
         cam:"dashboard → atm-locator → mongodb:martianbank",
         lat:[["dashboard","19 ms"],["atm-locator","8 ms"],["mongodb","4 ms"]],
+        cenario:"atm",
         regra:{crit:'"Specific endpoints"', val:"POST /api/atm/",
                nome:"Localizar caixa eletrônico",
                aviso:"não use <em>That contain</em> com <code>/api/atm/</code>: ele casaria também com o GET de um caixa específico."}}
@@ -463,19 +521,19 @@ let jornada = "";
 // Um exemplo por linha, de propósito em naturezas diferentes: serviço,
 // dependência compartilhada e algo que não é serviço nenhum. Os três
 // doem no cliente; nenhum deles é "o que quebra com mais frequência".
+// Duas linhas, de naturezas deliberadamente opostas: uma dentro do
+// backend e uma fora dele. E' o contraste que sustenta a instrucao de
+// que um dos dois nao deveria ser um servico.
 const EX_FALHA = [
-  {a:"o serviço de domínio para de responder",
+  {a:"o serviço de domínio, ou o banco compartilhado, para de responder",
    b:"a operação não conclui e ele não sabe se valeu",
-   c:"taxa de erro da Business Transaction no APM"},
-  {a:"o banco compartilhado fica lento ou indisponível",
-   b:"tela carregando até ele desistir",
-   c:"latência p90 — mas a causa fica invisível (Inferred Service)"},
+   c:"erro e latência da Business Transaction no APM"},
   {a:"algo fora do backend: permissão negada, sessão vencida, tela quebrada",
    b:"acredita que deu certo, e não deu",
    c:"só o RUM enxerga; não há erro nenhum no servidor"}
 ];
 
-el("falhas").innerHTML = [1,2,3].map(n => {
+el("falhas").innerHTML = [1,2].map(n => {
   const x = EX_FALHA[n-1];
   return `
   <div class="falha">
@@ -531,12 +589,20 @@ function pintarJornada(){
   if (j){
     el("g-crit").textContent = j.regra.crit + "  \u2192  " + j.regra.val;
     el("g-nome").textContent = j.regra.nome;
+    el("c-cen").textContent = "(--cenario " + j.cenario + ")";
+    el("c-cmd").innerHTML = '<span class="p">$ </span>bash ~/splunk/carga-locust.sh ' +
+      '--cenario ' + j.cenario + ' --usuarios 10 --continuo';
     const av = el("g-aviso");
     av.hidden = !j.regra.aviso;
     av.innerHTML = j.regra.aviso ? "<b>Atenção:</b> " + j.regra.aviso : "";
   }
   const refs = el("lat-refs");
-  if (!j){ if (refs) refs.innerHTML = ""; return; }
+  if (!j){
+    if (refs) refs.innerHTML = "";
+    el("c-cen").textContent = "";
+    el("c-cmd").innerHTML = '<span class="p">$ </span>bash ~/splunk/carga-locust.sh --usuarios 10 --continuo';
+    return;
+  }
   el("r-tela").textContent = j.tela;
   el("r-rota").textContent = j.rota;
   el("r-cam").textContent  = j.cam;
@@ -573,12 +639,12 @@ SLIS.forEach(s => el(s.id + "-alvo").addEventListener("input", () => pintarOrcam
 /* ---------- campos, persistência, progresso ---------- */
 const CAMPOS = ["grupo","integrantes","resultado","sucesso","imp-cliente","imp-mercado",
   "wf-nome","q-capturou","q-tempo","q-cliente"]
-  .concat([1,2,3].flatMap(n => [`f${n}a`,`f${n}b`,`f${n}c`]))
+  .concat([1,2].flatMap(n => [`f${n}a`,`f${n}b`,`f${n}c`]))
   .concat(SLIS.flatMap(s => [`${s.id}-txt`,`${s.id}-alvo`,`${s.id}-just`].concat(s.ms?[`${s.id}-ms`]:[])));
 
 // 18 itens contam para o progresso: os do entregável, não cada caixa de texto.
 const CONTAM = ["grupo","integrantes","resultado","sucesso","imp-cliente","imp-mercado",
-  "f1a","f2a","f3a","wf-nome","q-capturou","q-cliente"]
+  "f1a","f2a","wf-nome","q-capturou","q-cliente"]
   .concat(SLIS.flatMap(s => [`${s.id}-txt`,`${s.id}-alvo`,`${s.id}-just`]));
 
 function medir(){
@@ -650,7 +716,7 @@ function planilha(d){
   ];
 
   const falhas = [["#","Ponto de falha","O que o cliente vê","Como eu detectaria"]]
-    .concat([1,2,3].map(n => [n, d[`f${n}a`], d[`f${n}b`], d[`f${n}c`]]));
+    .concat([1,2].map(n => [n, d[`f${n}a`], d[`f${n}b`], d[`f${n}c`]]));
 
   const slis = [["Tipo","Enunciado do SLI","Alvo do SLO (%)","Tempo limite (ms)","Orçamento de erro / 30 dias","Justificativa"]]
     .concat(SLIS.map(s => {

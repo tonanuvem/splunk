@@ -61,9 +61,22 @@ Mapeamento completo em [BUSINESS-HEALTH.md](BUSINESS-HEALTH.md).
 **Pergunta-chave:** algum nó aparece com **borda tracejada**? Descubra o que
 isso significa — e o que você *não* consegue ver nele.
 
-## Passo 3 — Os três pontos de falha (10 min)
+## Passo 3 — Os dois pontos de falha (10 min)
 
-Escolha os **três** pontos cuja falha mais dói para o cliente. Para cada um:
+Gere carga antes de abrir o APM — sem tráfego o Service Map vem vazio e o
+grupo acaba desenhando a arquitetura em vez de observá-la:
+
+```bash
+bash ~/splunk/carga-locust.sh --cenario <auth|account|transaction|loan|atm> --usuarios 10 --continuo
+```
+
+Os **quatro Golden Signals** (latência, tráfego, erros, saturação) respondem à
+coluna "como eu detectaria". Dois limites que valem a discussão: saturação não
+vira SLI de confiabilidade, é indicador de capacidade; e nenhum dos quatro
+detecta uma jornada que falhou sem erro nenhum — que é a razão de existir o
+SLI de falha relevante.
+
+Escolha então os **dois** pontos cuja falha mais dói para o cliente:
 
 | Ponto de falha | O que o cliente vê | Como eu detectaria hoje |
 |---|---|---|
@@ -195,7 +208,7 @@ folga para carga de aula.
 **Obrigatório:**
 - O SLI de falha relevante **não** é taxa de erro HTTP. Se o grupo escreveu
   "% de requisições sem erro 5xx" nos três campos, não entendeu o exercício.
-- Os três pontos de falha incluem pelo menos um que **não é um serviço**:
+- Os dois pontos de falha incluem um que **não é um serviço**:
   o BFF como ponto único de entrada, o MongoDB compartilhado, ou o próprio
   navegador do cliente.
 - O SLO de latência é maior que a latência medida — se alguém propôs p90 < 5ms
@@ -222,7 +235,7 @@ orçamento: 4 minutos por mês. Pergunte quem vai ficar de plantão.
 **Resultado esperado:** o cliente entra na conta e vê o próprio nome e saldo.
 **Evento de sucesso:** sessão criada e a tela `/acc-info` renderizada com dados.
 
-**Pontos de falha:**
+**Pontos de falha** (o gabarito lista três; o grupo entrega dois):
 1. `customer-auth` indisponível → ninguém entra. Bloqueia **todas** as outras
    jornadas: é o gargalo de maior alcance do sistema.
 2. `mongodb:martianbank` (tracejado) → credenciais não conferem.
@@ -283,7 +296,7 @@ o BFF `dashboard`, por onde a jornada obrigatoriamente passa.
 **Resultado esperado:** valor sai de uma conta e entra na outra.
 **Evento de sucesso:** **ambos** os saldos atualizados e a transação no extrato.
 
-**Pontos de falha:**
+**Pontos de falha** (o gabarito lista três; o grupo entrega dois):
 1. `transactions` indisponível → transferência não ocorre.
 2. `mongodb:bank` → **falha parcial**: debita e não credita. O pior caso.
 3. `dashboard` (BFF) → timeout deixa o cliente sem saber se enviou. O risco
