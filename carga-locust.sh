@@ -134,7 +134,7 @@ echo "   Compose:  $COMPOSE_FILE"
 # ==================================================
 
 echo
-echo "2. DEFININDO AS URLS"
+echo "2. ROTAS EXERCITADAS E AS JORNADAS DE NEGOCIO"
 echo "=================================================="
 
 # Os locustfiles leem estas variaveis de api_urls.py. Em modo host o container
@@ -158,11 +158,55 @@ else
 
 fi
 
-echo "   accounts:     $U_ACCOUNTS"
-echo "   transfer:     $U_TRANSFER"
-echo "   loan:         $U_LOAN"
-echo "   users:        $U_USERS"
-echo "   atm:          $U_ATM"
+# Mostrar a rota, e nao so' a URL base, deixa visivel a relacao que o
+# exercicio explora: quais das 15 rotas sao jornadas de negocio, e como a
+# regra Default do APM as reagrupa. Os numeros sao os dos grupos.
+rotas_do_cenario() {
+    case "$1" in
+    auth)
+        echo "AUTENTICACAO    $U_USERS   (customer-auth)"
+        echo "   POST /api/users              cadastrar cliente"
+        echo "   POST /api/users/auth         [1] AUTENTICACAO"
+        echo "   GET  /api/users/profile      ver perfil"
+        echo "   PUT  /api/users/profile      atualizar perfil"
+        echo "   POST /api/users/logout       sair" ;;
+    atm)
+        echo "CAIXAS          $U_ATM   (atm-locator)"
+        echo "   POST /api/atm/               [6] LOCALIZAR CAIXAS"
+        echo "   GET  /api/atm/<id>           detalhe de um caixa" ;;
+    account)
+        echo "CONTAS          $U_ACCOUNTS   (dashboard -> accounts)"
+        echo "   POST /account/create         [2] ABRIR CONTA"
+        echo "   POST /account/allaccounts    consultar contas"
+        echo "   GET  /account/detail         detalhe da conta" ;;
+    transaction)
+        echo "TRANSFERENCIAS  $U_TRANSFER   (dashboard -> transactions)"
+        echo "   POST /transaction/           [3] TRANSFERIR"
+        echo "   POST /transaction/history    [4] EXTRATO"
+        echo "   POST /transaction/zelle/     transferencia Zelle" ;;
+    loan)
+        echo "EMPRESTIMOS     $U_LOAN   (dashboard -> loan)"
+        echo "   POST /loan/                  [5] SOLICITAR EMPRESTIMO"
+        echo "   POST /loan/history           historico de emprestimos" ;;
+    esac
+}
+
+if [ "$CENARIO" = "todos" ]; then
+    for C in auth atm account transaction loan; do
+        echo; rotas_do_cenario "$C"
+    done
+    echo
+    echo "15 rotas, 6 jornadas de negocio - as numeradas acima."
+    echo
+    echo "No APM, a regra Default nomeia cada transacao pelo 1o segmento da"
+    echo "URI, e transforma essas 15 rotas em 9 nomes. POST /transaction"
+    echo "sozinho soma [3] TRANSFERIR e [4] EXTRATO, que tem SLOs diferentes."
+    echo "Em Settings > APM Configuration troque para 3 segmentos: cada rota"
+    echo "passa a ser uma transacao propria."
+else
+    echo
+    rotas_do_cenario "$CENARIO"
+fi
 
 
 # ==================================================
