@@ -14,7 +14,7 @@ Duração sugerida: **60 a 75 minutos**. Grupos de 3 a 5 alunos.
 O Service Map só é útil com tráfego. Gere carga **antes** de distribuir os grupos:
 
 ```bash
-bash ~/splunk/carga-locust.sh --usuarios 10 --tempo 15m
+bash ~/splunk/carga-locust.sh --usuarios 10 --duracao 5m
 ```
 
 Confirme em `APM > Service Map` que os 8 serviços aparecem com números.
@@ -67,7 +67,7 @@ Gere carga antes de abrir o APM — sem tráfego o Service Map vem vazio e o
 grupo acaba desenhando a arquitetura em vez de observá-la:
 
 ```bash
-bash ~/splunk/carga-locust.sh --cenario <auth|account|transaction|loan|atm> --usuarios 10 --continuo
+bash ~/splunk/carga-locust.sh --cenario <auth|account|transaction|loan|atm> --usuarios 10 --duracao 5m
 ```
 
 Os **quatro Golden Signals** (latência, tráfego, erros, saturação) respondem à
@@ -130,21 +130,23 @@ proteger esse número? Se não, o SLO está apertado demais.
 
 O SLO só é real quando você vê o orçamento queimar.
 
-**Pré-requisito que decide o passo:** a carga precisa estar rodando — e é a
-**mesma** do passo 3, não um teste novo depois de derrubar. Sem tráfego não há
-requisição para falhar: o gráfico fica plano e o grupo conclui que o SLI não
-capturou nada.
+**Pré-requisito que decide o passo:** a carga precisa estar rodando *antes* de
+derrubar. Sem tráfego não há requisição para falhar — o gráfico fica plano e o
+grupo conclui que o SLI não capturou nada.
 
 Ela precisa ser do **cenário do grupo**, não `todos`: com os cinco cenários em
 rodízio de 60 s, a jornada do grupo roda 1 minuto a cada 5, e ele pode derrubar
 o serviço numa janela em que ele nem está sendo chamado.
 
 ```bash
-bash ~/splunk/carga-locust.sh --cenario <auth|account|transaction|loan|atm> --duracao 20m
+bash ~/splunk/carga-locust.sh --cenario <auth|account|transaction|loan|atm> --duracao 5m
 ```
 
-A carga ocupa o terminal, então o `docker stop` vai num **segundo terminal**.
-Com ela no ar, cada grupo derruba **o serviço da própria jornada**:
+A janela é de 5 minutos, usada assim: o **1º minuto passa limpo** e é a linha
+de base, o serviço cai no 2º, o grupo observa, e restaura antes do fim. A carga
+ocupa o terminal, então o `docker stop` vai num **segundo terminal**.
+
+Cada grupo derruba **o serviço da própria jornada**:
 
 | Grupo | Serviço |
 |---|---|
