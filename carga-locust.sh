@@ -403,7 +403,7 @@ echo "  APM > Services           latencia e taxa de erro por servico"
 echo "  Infrastructure > Hosts   CPU/memoria da EC2"
 echo
 echo "As metricas de container (docker_stats) nao tem dashboard pronto:"
-echo "monte os graficos com o SignalFlow do repositorio."
+# echo "monte os graficos com o SignalFlow do repositorio."
 echo
 echo "=================================================="
 
