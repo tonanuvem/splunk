@@ -1,4 +1,4 @@
-<title>Entregável SLI e SLO</title>
+<title>Atividades SLI e SLO</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
@@ -437,7 +437,7 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
 <section class="export">
   <div>
     <h2>Entrega do grupo</h2>
-    <p>Gera um arquivo <code>.xlsx</code> com tudo o que você preencheu, em três abas: entregável, pontos de falha e SLIs.</p>
+    <p>Gera um arquivo <code>.xlsx</code> com tudo o que você preencheu, em três abas: analises, pontos de falha e SLIs.</p>
     <div class="status" id="status"></div>
   </div>
   <button class="btn" id="exportar2" type="button">Gerar planilha</button>
@@ -706,7 +706,7 @@ function planilha(d){
   const j = JORNADAS[d.jornada];
 
   const entregavel = [
-    ["Entregável — SLIs e SLOs orientados ao negócio"],
+    ["Atividades — SLIs e SLOs orientados ao negócio"],
     [],
     ["Grupo", d.grupo],
     ["Integrantes", d.integrantes],
