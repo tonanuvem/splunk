@@ -105,7 +105,7 @@ fi
 # ------------------------------------------------------------
 
 echo "=================================================="
-echo " ATIVIDADE SLI/SLO - pagina do entregavel"
+echo " ATIVIDADE SLI/SLO - pagina de Atividade"
 echo "=================================================="
 echo
 echo "[1/3] Construindo a imagem"
