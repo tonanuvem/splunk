@@ -144,6 +144,17 @@ Feche o entregável com duas frases:
 
 ## Entregável do grupo
 
+Página para preencher em aula, com cálculo do orçamento de erro e exportação
+da entrega em `.xlsx`:
+
+**https://claude.ai/artifact/PnSnibUtNm4ESzXtir3vn4**
+
+O preenchimento fica salvo no navegador do grupo enquanto ele trabalha. A
+planilha sai com três abas — entregável, pontos de falha e SLIs. Fonte da
+página: [entregavel-sli-slo.html](entregavel-sli-slo.html).
+
+### Campos (caso o grupo prefira papel)
+
 | Item | |
 |---|---|
 | Jornada e resultado de negócio | |

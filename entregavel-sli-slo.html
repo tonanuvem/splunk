@@ -1,0 +1,537 @@
+<title>Entregável SLI e SLO</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+:root{
+  --ground:#EFF2F8; --surface:#FFFFFF; --surface-2:#F5F7FC;
+  --ink:#101A36; --ink-soft:#4E5A82; --ink-faint:#7B86A8;
+  --line:#D6DCEA; --line-strong:#B9C3DB;
+  --accent:#2E4BD6; --accent-soft:#E3E8FB;
+  --gold:#9A6E1C; --gold-soft:#F7EEDA;
+  --ok:#136D54; --warn:#8C5A0C; --crit:#A81F18;
+  --on-accent:#FFFFFF;
+  --shadow:0 1px 2px rgba(16,26,54,.06), 0 8px 24px rgba(16,26,54,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#070D20; --surface:#0E1733; --surface-2:#131D3E;
+    --ink:#E8ECF9; --ink-soft:#A3AECF; --ink-faint:#74809F;
+    --line:#26325A; --line-strong:#3A4877;
+    --accent:#88A0FF; --accent-soft:#1B2650;
+    --gold:#E0A94A; --gold-soft:#2A2213;
+    --ok:#4FC39C; --warn:#E0A94A; --crit:#FF8177;
+    --on-accent:#0A1230;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#070D20; --surface:#0E1733; --surface-2:#131D3E;
+  --ink:#E8ECF9; --ink-soft:#A3AECF; --ink-faint:#74809F;
+  --line:#26325A; --line-strong:#3A4877;
+  --accent:#88A0FF; --accent-soft:#1B2650;
+  --gold:#E0A94A; --gold-soft:#2A2213;
+  --ok:#4FC39C; --warn:#E0A94A; --crit:#FF8177;
+  --on-accent:#0A1230;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:"Source Serif 4",Georgia,serif; text-wrap:balance; margin:0}
+input,textarea,select,button{font:inherit; color:inherit}
+
+/* ---------- barra superior ---------- */
+.bar{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:20;
+  background:color-mix(in srgb, var(--ground) 88%, transparent);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.bar-in{
+  max-width:940px; margin:0 auto; padding:10px 20px;
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+.bar-id{font-size:12px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-faint); font-weight:600}
+.bar-sp{flex:1 1 40px}
+.meter{display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--ink-soft)}
+.meter-track{width:90px; height:5px; border-radius:99px; background:var(--line); overflow:hidden}
+.meter-fill{height:100%; width:0%; background:var(--accent); transition:width .3s ease}
+.btn{
+  border:1px solid var(--accent); background:var(--accent); color:var(--on-accent);
+  padding:8px 15px; border-radius:7px; font-weight:600; font-size:14px;
+  cursor:pointer; display:inline-flex; align-items:center; gap:7px;
+}
+.btn:hover{filter:brightness(1.07)}
+.btn:disabled{opacity:.45; cursor:not-allowed; filter:none}
+.btn-ghost{background:transparent; color:var(--ink-soft); border-color:var(--line-strong)}
+.btn:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,.chip:focus-visible{
+  outline:2px solid var(--accent); outline-offset:2px;
+}
+
+/* ---------- corpo ---------- */
+.wrap{max-width:940px; margin:0 auto; padding:0 20px 80px}
+header.hero{padding-block:34px 26px}
+.eyebrow{
+  font-size:12px; letter-spacing:.11em; text-transform:uppercase;
+  color:var(--accent); font-weight:600; margin:0 0 10px;
+}
+h1{font-size:clamp(28px,4.6vw,40px); line-height:1.12; letter-spacing:-.01em}
+.lede{color:var(--ink-soft); max-width:62ch; margin:12px 0 0; font-size:15.5px}
+
+section{
+  background:var(--surface); border:1px solid var(--line); border-radius:12px;
+  padding:22px 22px 24px; margin-bottom:16px; box-shadow:var(--shadow);
+}
+.step{display:flex; align-items:baseline; gap:11px; margin-bottom:6px}
+.num{
+  flex:none; width:24px; height:24px; border-radius:6px; background:var(--accent-soft);
+  color:var(--accent); font-family:"IBM Plex Mono",monospace; font-size:12.5px; font-weight:500;
+  display:grid; place-items:center; transform:translateY(2px);
+}
+h2{font-size:20px; letter-spacing:-.005em}
+.hint{color:var(--ink-soft); font-size:13.5px; margin:2px 0 18px 35px; max-width:64ch}
+.hint code{font-family:"IBM Plex Mono",monospace; font-size:12.5px; background:var(--surface-2); padding:1px 5px; border-radius:4px}
+
+label{display:block; font-size:12px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; margin-bottom:5px}
+input[type=text],textarea,select{
+  width:100%; background:var(--surface-2); border:1px solid var(--line);
+  border-radius:7px; padding:9px 11px; font-size:14.5px;
+}
+input[type=text]:focus,textarea:focus,select:focus{border-color:var(--accent); background:var(--surface)}
+textarea{resize:vertical; min-height:62px; line-height:1.5}
+.field{margin-bottom:15px}
+.row{display:flex; gap:14px; flex-wrap:wrap}
+.row>.field{flex:1 1 220px; min-width:0}
+
+/* ---------- jornadas ---------- */
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px}
+.chip{
+  border:1px solid var(--line-strong); background:var(--surface-2); color:var(--ink-soft);
+  border-radius:99px; padding:6px 13px; font-size:13.5px; cursor:pointer; font-weight:500;
+}
+.chip[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:var(--on-accent); font-weight:600}
+
+.ref{
+  border-left:3px solid var(--gold); background:var(--gold-soft);
+  border-radius:0 8px 8px 0; padding:13px 16px; margin-bottom:18px; font-size:13.5px;
+}
+.ref-t{font-size:11.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--gold); font-weight:600; margin-bottom:7px}
+.ref dl{display:grid; grid-template-columns:auto 1fr; gap:4px 14px; margin:0}
+.ref dt{color:var(--ink-soft)}
+.ref dd{margin:0; font-family:"IBM Plex Mono",monospace; font-size:12.5px}
+
+/* ---------- pontos de falha ---------- */
+.falhas{display:flex; flex-direction:column; gap:11px}
+.falha{display:flex; gap:11px; align-items:flex-start}
+.falha-n{
+  flex:none; width:22px; height:22px; border-radius:50%; border:1px solid var(--line-strong);
+  color:var(--ink-faint); font-size:12px; display:grid; place-items:center; margin-top:7px;
+  font-family:"IBM Plex Mono",monospace;
+}
+.falha-f{flex:1 1 auto; display:flex; gap:10px; flex-wrap:wrap; min-width:0}
+.falha-f>div{flex:1 1 170px; min-width:0}
+
+/* ---------- SLI ---------- */
+.sli{border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:13px; background:var(--surface-2)}
+.sli-h{display:flex; align-items:center; gap:9px; margin-bottom:13px; flex-wrap:wrap}
+.tag{
+  font-size:11px; letter-spacing:.08em; text-transform:uppercase; font-weight:600;
+  padding:3px 9px; border-radius:5px; background:var(--accent-soft); color:var(--accent);
+}
+.tag.hard{background:var(--gold-soft); color:var(--gold)}
+.sli-h p{margin:0; font-size:13px; color:var(--ink-soft); flex:1 1 200px}
+
+.budget{
+  display:flex; align-items:center; gap:10px; margin-top:9px; padding:9px 12px;
+  border-radius:7px; background:var(--surface); border:1px solid var(--line); font-size:13px;
+}
+.budget b{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-size:14.5px; font-weight:500}
+.budget.ok b{color:var(--ok)} .budget.warn b{color:var(--warn)} .budget.crit b{color:var(--crit)}
+.budget span{color:var(--ink-soft)}
+.budget[hidden]{display:none !important}
+
+.lat-refs{display:flex; gap:6px; flex-wrap:wrap; margin-top:7px}
+.lat-ref{
+  font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink-soft);
+  background:var(--surface); border:1px solid var(--line); border-radius:5px; padding:2px 7px;
+}
+
+/* ---------- rodapé ---------- */
+.export{
+  border:1px solid var(--accent); background:var(--accent-soft); border-radius:12px;
+  padding:22px; display:flex; gap:18px; align-items:center; flex-wrap:wrap;
+}
+.export div{flex:1 1 260px}
+.export h2{font-size:18px; margin-bottom:5px}
+.export p{margin:0; font-size:13.5px; color:var(--ink-soft)}
+.status{font-size:13px; margin-top:11px; min-height:19px}
+.status.err{color:var(--crit)} .status.good{color:var(--ok)}
+footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font-size:12.5px; color:var(--ink-faint); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap}
+
+@media (prefers-reduced-motion: reduce){*{transition:none !important; animation:none !important}}
+</style>
+
+<div class="bar">
+  <div class="bar-in">
+    <span class="bar-id">Encontro 1 · Bloco 3</span>
+    <span class="bar-sp"></span>
+    <div class="meter">
+      <div class="meter-track"><div class="meter-fill" id="fill"></div></div>
+      <span id="meter-txt">0 de 18</span>
+    </div>
+    <button class="btn btn-ghost" id="limpar" type="button">Limpar</button>
+    <button class="btn" id="exportar" type="button">Gerar planilha</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Exercício final · SLIs e SLOs orientados ao negócio</p>
+  <h1>Transforme uma jornada em indicadores e objetivos</h1>
+  <p class="lede">
+    Preencha a partir do que você observou no FIAP OTEL Bank — a jornada no navegador
+    e o Service Map do APM. Ao final, gere a planilha do grupo para entrega.
+    O preenchimento fica salvo neste navegador enquanto você trabalha.
+  </p>
+</header>
+
+<section>
+  <div class="step"><span class="num">1</span><h2>Identificação</h2></div>
+  <p class="hint">Escolha a jornada do seu grupo. O quadro de referência mostra o caminho que ela percorre — é ponto de partida para a observação, não resposta pronta.</p>
+
+  <div class="row">
+    <div class="field" style="flex:0 1 130px"><label for="grupo">Grupo</label><input type="text" id="grupo" placeholder="3"></div>
+    <div class="field" style="flex:3 1 320px"><label for="integrantes">Integrantes</label><input type="text" id="integrantes" placeholder="Nomes separados por vírgula"></div>
+  </div>
+
+  <label>Jornada de negócio</label>
+  <div class="chips" id="chips" role="group" aria-label="Jornada de negócio"></div>
+  <div class="ref" id="ref" hidden>
+    <div class="ref-t">Referência do ambiente</div>
+    <dl>
+      <dt>Tela</dt><dd id="r-tela"></dd>
+      <dt>Entrada no BFF</dt><dd id="r-rota"></dd>
+      <dt>Caminho</dt><dd id="r-cam"></dd>
+    </dl>
+  </div>
+</section>
+
+<section>
+  <div class="step"><span class="num">2</span><h2>Jornada e resultado de negócio</h2></div>
+  <p class="hint">Escreva do ponto de vista de quem usa o banco, não de quem opera o sistema.</p>
+  <div class="field"><label for="resultado">Qual é o resultado esperado da jornada?</label>
+    <textarea id="resultado" placeholder="O cliente consegue…"></textarea></div>
+  <div class="field" style="margin-bottom:0"><label for="sucesso">Qual evento representa sucesso?</label>
+    <textarea id="sucesso" placeholder="O que, concretamente, prova que deu certo?"></textarea></div>
+</section>
+
+<section>
+  <div class="step"><span class="num">3</span><h2>Três pontos de falha</h2></div>
+  <p class="hint">Não é o que tem mais chance de quebrar — é o que, quebrando, <strong>impede o resultado de negócio</strong>. Pelo menos um deles não deveria ser um serviço.</p>
+  <div class="falhas" id="falhas"></div>
+</section>
+
+<section>
+  <div class="step"><span class="num">4</span><h2>SLIs, SLOs e justificativa</h2></div>
+  <p class="hint">Escreva cada SLI como frase mensurável, não como nome de métrica. O orçamento de erro é calculado enquanto você digita o alvo — use-o para checar se o número é sustentável.</p>
+  <div id="slis"></div>
+</section>
+
+<section>
+  <div class="step"><span class="num">5</span><h2>Impacto no cliente e no mercado</h2></div>
+  <p class="hint">Duas frases. É o que liga o número à consequência — e o que justifica o SLO diante de quem não é técnico.</p>
+  <div class="field"><label for="imp-cliente">Quando este SLO é violado, o cliente…</label>
+    <textarea id="imp-cliente"></textarea></div>
+  <div class="field" style="margin-bottom:0"><label for="imp-mercado">Se isso acontecer repetidamente, o banco…</label>
+    <textarea id="imp-mercado"></textarea></div>
+</section>
+
+<section class="export">
+  <div>
+    <h2>Entrega do grupo</h2>
+    <p>Gera um arquivo <code>.xlsx</code> com tudo o que você preencheu, em três abas: entregável, pontos de falha e SLIs.</p>
+    <div class="status" id="status"></div>
+  </div>
+  <button class="btn" id="exportar2" type="button">Gerar planilha</button>
+</section>
+
+<footer>
+  <span>FIAP OTEL Bank · Observabilidade, negócios e impacto real</span>
+  <span id="save-note">—</span>
+</footer>
+</div>
+
+<script>
+"use strict";
+
+const JORNADAS = {
+  auth:{nome:"Autenticação", tela:"/login", rota:"POST /api/users/auth",
+        cam:"dashboard → customer-auth → mongodb:martianbank",
+        lat:[["dashboard","19 ms"],["customer-auth","101 ms"],["mongodb","4 ms"]]},
+  conta:{nome:"Abrir conta", tela:"/new-account", rota:"POST /account/create",
+        cam:"dashboard → accounts → mongodb:bank",
+        lat:[["dashboard","19 ms"],["accounts","5 ms"],["mongodb","3 ms"]]},
+  transf:{nome:"Transferir entre contas", tela:"/transfer", rota:"POST /transaction/",
+        cam:"dashboard → transactions → mongodb:bank",
+        lat:[["dashboard","19 ms"],["transactions","3 ms"],["mongodb","3 ms"]]},
+  extrato:{nome:"Extrato da conta", tela:"/transactions", rota:"POST /transaction/history",
+        cam:"dashboard → transactions → mongodb:bank",
+        lat:[["dashboard","19 ms"],["transactions","3 ms"],["mongodb","3 ms"]]},
+  emprestimo:{nome:"Solicitar empréstimo", tela:"/new-loan", rota:"POST /loan/",
+        cam:"dashboard → loan → mongodb:bank",
+        lat:[["dashboard","19 ms"],["loan","23 ms"],["mongodb","3 ms"]]},
+  atm:{nome:"Localizar caixas eletrônicos", tela:"/find-atm", rota:"POST /api/atm/",
+        cam:"dashboard → atm-locator → mongodb:martianbank",
+        lat:[["dashboard","19 ms"],["atm-locator","8 ms"],["mongodb","4 ms"]]}
+};
+
+const SLIS = [
+  {id:"disp", rot:"Disponibilidade", hard:false,
+   dica:"% de tentativas que retornam sem erro",
+   ph:"% de tentativas de … que retornam sem erro"},
+  {id:"lat", rot:"Latência", hard:false, ms:true,
+   dica:"% que completa dentro do tempo definido",
+   ph:"% de tentativas que completam em menos de … ms"},
+  {id:"falha", rot:"Falha relevante", hard:true,
+   dica:"o difícil: falha de negócio não é erro HTTP",
+   ph:"% de tentativas que atingem o resultado de negócio"}
+];
+
+const CHAVE = "fiap-sli-slo-v1";
+const el = id => document.getElementById(id);
+let jornada = "";
+
+/* ---------- monta pontos de falha ---------- */
+el("falhas").innerHTML = [1,2,3].map(n => `
+  <div class="falha">
+    <span class="falha-n">${n}</span>
+    <div class="falha-f">
+      <div><label for="f${n}a">Ponto de falha</label><input type="text" id="f${n}a"></div>
+      <div><label for="f${n}b">O que o cliente vê</label><input type="text" id="f${n}b"></div>
+      <div><label for="f${n}c">Como eu detectaria</label><input type="text" id="f${n}c"></div>
+    </div>
+  </div>`).join("");
+
+/* ---------- monta SLIs ---------- */
+el("slis").innerHTML = SLIS.map(s => `
+  <div class="sli">
+    <div class="sli-h">
+      <span class="tag ${s.hard?"hard":""}">${s.rot}</span>
+      <p>${s.dica}</p>
+    </div>
+    <div class="field"><label for="${s.id}-txt">Enunciado do SLI</label>
+      <input type="text" id="${s.id}-txt" placeholder="${s.ph}"></div>
+    <div class="row">
+      <div class="field" style="flex:0 1 150px">
+        <label for="${s.id}-alvo">Alvo do SLO (%)</label>
+        <input type="text" id="${s.id}-alvo" inputmode="decimal" placeholder="99,5">
+      </div>
+      ${s.ms ? `<div class="field" style="flex:0 1 170px">
+        <label for="${s.id}-ms">Tempo limite (ms)</label>
+        <input type="text" id="${s.id}-ms" inputmode="numeric" placeholder="1500">
+      </div>` : ``}
+    </div>
+    ${s.ms ? `<div class="lat-refs" id="lat-refs"></div>` : ``}
+    <div class="budget" id="${s.id}-bud" hidden></div>
+    <div class="field" style="margin:14px 0 0"><label for="${s.id}-just">Justificativa — por que este alvo?</label>
+      <textarea id="${s.id}-just" placeholder="O número tem que vir de uma consequência de negócio."></textarea></div>
+  </div>`).join("");
+
+/* ---------- jornadas ---------- */
+el("chips").innerHTML = Object.entries(JORNADAS).map(([k,j]) =>
+  `<button class="chip" type="button" data-j="${k}" aria-pressed="false">${j.nome}</button>`).join("");
+
+function pintarJornada(){
+  document.querySelectorAll(".chip").forEach(c =>
+    c.setAttribute("aria-pressed", String(c.dataset.j === jornada)));
+  const j = JORNADAS[jornada];
+  el("ref").hidden = !j;
+  const refs = el("lat-refs");
+  if (!j){ if (refs) refs.innerHTML = ""; return; }
+  el("r-tela").textContent = j.tela;
+  el("r-rota").textContent = j.rota;
+  el("r-cam").textContent  = j.cam;
+  if (refs) refs.innerHTML = "<span class='lat-ref'>medido no Service Map:</span>" +
+    j.lat.map(([s,v]) => `<span class="lat-ref">${s} ${v}</span>`).join("");
+}
+el("chips").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  jornada = b.dataset.j === jornada ? "" : b.dataset.j;
+  pintarJornada(); salvar(); medir();
+});
+
+/* ---------- orçamento de erro ---------- */
+function orcamento(pct){
+  const min = 43200 * (100 - pct) / 100;
+  const h = Math.floor(min / 60), m = Math.round(min % 60);
+  return h >= 1 ? `${h} h ${String(m).padStart(2,"0")} min` : `${Math.round(min)} min`;
+}
+function pintarOrcamento(s){
+  const bruto = el(s.id + "-alvo").value.trim().replace(",", ".").replace("%","");
+  const box = el(s.id + "-bud");
+  const pct = parseFloat(bruto);
+  if (!bruto || isNaN(pct) || pct <= 0 || pct > 100){ box.hidden = true; return; }
+  let nivel = "ok", nota = "folga confortável para manutenção e incidentes.";
+  const min = 43200 * (100 - pct) / 100;
+  if (min < 15){ nivel = "crit"; nota = "apertado demais: sua equipe aguentaria plantão por isso?"; }
+  else if (min < 60){ nivel = "warn"; nota = "exige processo de resposta maduro."; }
+  box.hidden = false;
+  box.className = "budget " + nivel;
+  box.innerHTML = `<span>Orçamento de erro em 30 dias:</span><b>${orcamento(pct)}</b><span>— ${nota}</span>`;
+}
+SLIS.forEach(s => el(s.id + "-alvo").addEventListener("input", () => pintarOrcamento(s)));
+
+/* ---------- campos, persistência, progresso ---------- */
+const CAMPOS = ["grupo","integrantes","resultado","sucesso","imp-cliente","imp-mercado"]
+  .concat([1,2,3].flatMap(n => [`f${n}a`,`f${n}b`,`f${n}c`]))
+  .concat(SLIS.flatMap(s => [`${s.id}-txt`,`${s.id}-alvo`,`${s.id}-just`].concat(s.ms?[`${s.id}-ms`]:[])));
+
+// 18 itens contam para o progresso: os do entregável, não cada caixa de texto.
+const CONTAM = ["grupo","integrantes","resultado","sucesso","imp-cliente","imp-mercado",
+  "f1a","f2a","f3a"]
+  .concat(SLIS.flatMap(s => [`${s.id}-txt`,`${s.id}-alvo`,`${s.id}-just`]));
+
+function medir(){
+  let n = CONTAM.filter(c => (el(c)?.value || "").trim()).length;
+  if (jornada) n += 0;
+  const tot = CONTAM.length;
+  el("fill").style.width = Math.round(n / tot * 100) + "%";
+  el("meter-txt").textContent = `${n} de ${tot}`;
+}
+
+function coletar(){
+  const o = {jornada};
+  CAMPOS.forEach(c => o[c] = (el(c)?.value || "").trim());
+  return o;
+}
+function salvar(){
+  try{ localStorage.setItem(CHAVE, JSON.stringify(coletar()));
+       el("save-note").textContent = "Salvo neste navegador";
+  }catch(e){ el("save-note").textContent = "Sem salvamento local — não feche a aba"; }
+}
+function carregar(){
+  let d = null;
+  try{ d = JSON.parse(localStorage.getItem(CHAVE) || "null"); }catch(e){}
+  if (!d) return;
+  jornada = d.jornada || "";
+  CAMPOS.forEach(c => { if (el(c) && typeof d[c] === "string") el(c).value = d[c]; });
+}
+
+CAMPOS.forEach(c => el(c)?.addEventListener("input", () => { salvar(); medir(); }));
+
+el("limpar").addEventListener("click", () => {
+  if (!confirm("Apagar tudo o que foi preenchido neste navegador?")) return;
+  CAMPOS.forEach(c => { if (el(c)) el(c).value = ""; });
+  jornada = "";
+  try{ localStorage.removeItem(CHAVE); }catch(e){}
+  SLIS.forEach(s => el(s.id + "-bud").hidden = true);
+  pintarJornada(); medir(); el("save-note").textContent = "—";
+});
+
+/* ---------- planilha ---------- */
+function planilha(d){
+  const nomeJ = JORNADAS[d.jornada]?.nome || "(jornada não escolhida)";
+  const j = JORNADAS[d.jornada];
+
+  const entregavel = [
+    ["Entregável — SLIs e SLOs orientados ao negócio"],
+    [],
+    ["Grupo", d.grupo],
+    ["Integrantes", d.integrantes],
+    ["Jornada de negócio", nomeJ],
+    ["Tela (RUM)", j ? j.tela : ""],
+    ["Entrada no BFF (APM)", j ? j.rota : ""],
+    ["Caminho no Service Map", j ? j.cam : ""],
+    [],
+    ["Resultado esperado da jornada", d.resultado],
+    ["Evento que representa sucesso", d.sucesso],
+    [],
+    ["Impacto no cliente", d["imp-cliente"]],
+    ["Impacto no mercado", d["imp-mercado"]],
+    [],
+    ["Gerado em", new Date().toLocaleString("pt-BR")]
+  ];
+
+  const falhas = [["#","Ponto de falha","O que o cliente vê","Como eu detectaria"]]
+    .concat([1,2,3].map(n => [n, d[`f${n}a`], d[`f${n}b`], d[`f${n}c`]]));
+
+  const slis = [["Tipo","Enunciado do SLI","Alvo do SLO (%)","Tempo limite (ms)","Orçamento de erro / 30 dias","Justificativa"]]
+    .concat(SLIS.map(s => {
+      const pct = parseFloat((d[`${s.id}-alvo`] || "").replace(",", ".").replace("%",""));
+      const ok = !isNaN(pct) && pct > 0 && pct <= 100;
+      return [s.rot, d[`${s.id}-txt`], d[`${s.id}-alvo`], s.ms ? (d[`${s.id}-ms`] || "") : "",
+              ok ? orcamento(pct) : "", d[`${s.id}-just`]];
+    }));
+
+  const wb = XLSX.utils.book_new();
+  const a1 = XLSX.utils.aoa_to_sheet(entregavel); a1["!cols"] = [{wch:28},{wch:76}];
+  const a2 = XLSX.utils.aoa_to_sheet(falhas);     a2["!cols"] = [{wch:4},{wch:34},{wch:38},{wch:38}];
+  const a3 = XLSX.utils.aoa_to_sheet(slis);       a3["!cols"] = [{wch:18},{wch:48},{wch:15},{wch:16},{wch:26},{wch:56}];
+  XLSX.utils.book_append_sheet(wb, a1, "Entregável");
+  XLSX.utils.book_append_sheet(wb, a2, "Pontos de falha");
+  XLSX.utils.book_append_sheet(wb, a3, "SLIs e SLOs");
+  return wb;
+}
+
+function semAcento(s){
+  return (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+let salvando = false;
+async function exportar(){
+  if (salvando) return;
+  const d = coletar();
+  const st = el("status");
+  const faltam = CONTAM.filter(c => !d[c]).length;
+
+  if (typeof XLSX === "undefined"){
+    st.className = "status err";
+    st.textContent = "A biblioteca de planilha não carregou. Recarregue a página e tente de novo.";
+    return;
+  }
+
+  const downloads = await window.claude?.use?.("downloads");
+  if (!downloads){
+    st.className = "status err";
+    st.textContent = "Download indisponível nesta visualização. Abra o artifact em uma janela própria e tente de novo.";
+    return;
+  }
+
+  salvando = true;
+  [el("exportar"), el("exportar2")].forEach(b => b.disabled = true);
+  st.className = "status";
+  st.textContent = faltam ? `Gerando com ${faltam} campo(s) ainda em branco…` : "Gerando…";
+
+  try{
+    const dados = XLSX.write(planilha(d), {bookType:"xlsx", type:"array"});
+    const nome = `SLI-SLO_Grupo-${semAcento(d.grupo) || "sem-numero"}_${semAcento(JORNADAS[d.jornada]?.nome) || "jornada"}.xlsx`;
+    await downloads.save({filename:nome, data:dados});
+    st.className = "status good";
+    st.textContent = `Planilha gerada: ${nome}`;
+  }catch(err){
+    st.className = "status err";
+    const c = err && err.code;
+    if (c === "declined")          st.textContent = "Download cancelado.";
+    else if (c === "rate_limited") st.textContent = "Já há um download em andamento. Aguarde e tente de novo.";
+    else if (c === "too_large")    st.textContent = "Arquivo grande demais para esta visualização.";
+    else                           st.textContent = "Não foi possível gerar a planilha" + (c ? ` (${c}).` : ".");
+  }finally{
+    salvando = false;
+    [el("exportar"), el("exportar2")].forEach(b => b.disabled = false);
+  }
+}
+el("exportar").addEventListener("click", exportar);
+el("exportar2").addEventListener("click", exportar);
+
+/* ---------- início ---------- */
+carregar();
+pintarJornada();
+SLIS.forEach(pintarOrcamento);
+medir();
+</script>
