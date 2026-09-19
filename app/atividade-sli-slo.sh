@@ -170,12 +170,12 @@ echo "=================================================="
 echo
 [ -n "$IP_PUB" ] && echo "  Para os alunos:   http://${IP_PUB}:${PORTA}"
 [ -n "$IP_LOC" ] && echo "  Na rede local:    http://${IP_LOC}:${PORTA}"
-echo "  Nesta maquina:    http://localhost:${PORTA}"
+echo "  Acessar :    http://localhost:${PORTA}"
 echo
 if [ -n "$IP_PUB" ]; then
-    echo "  Libere a porta $PORTA no Security Group, senao so' voce enxerga."
+    # echo "  Libere a porta $PORTA no Security Group, senao so' voce enxerga."
     echo
 fi
-echo "  Parar:  bash $(basename "$0") --parar"
-echo "  Logs:   bash $(basename "$0") --logs"
+# echo "  Parar:  bash $(basename "$0") --parar"
+# echo "  Logs:   bash $(basename "$0") --logs"
 echo
