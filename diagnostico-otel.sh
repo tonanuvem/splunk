@@ -95,7 +95,7 @@ elif [ -z "$(ler_spans)" ]; then
         echo "   enviou span algum ainda. Isso nao e' defeito."
         echo
         echo "   Suba a aplicacao e rode este diagnostico de novo:"
-        echo "     cd ~/splunk && bash docker-run-demo-bank.sh host"
+        echo "     cd ~/splunk && bash run-docker-bank.sh host"
     else
         echo "   Os containers estao no ar, mas nenhum span chegou ao collector."
         echo "   Gere trafego e repita:"
@@ -168,7 +168,7 @@ printf "%-16s %-22s %-34s\n" "---------" "-----------------" "------------------
 if [ "$(docker ps --format '{{.Names}}' | grep -cE 'fiapbank|martianbank')" -eq 0 ]; then
     echo "  (nenhum container da aplicacao rodando)"
     echo
-    echo "  Suba com: cd ~/splunk && bash docker-run-demo-bank.sh host"
+    echo "  Suba com: cd ~/splunk && bash run-docker-bank.sh host"
 fi
 
 for C in $(docker ps --format '{{.Names}}' | grep -E 'fiapbank|martianbank'); do

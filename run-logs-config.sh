@@ -83,7 +83,7 @@ esac
 
 echo
 echo "  Proximo passo - subir a aplicacao:"
-echo "    bash ~/splunk/docker-run-demo-bank.sh host"
+echo "    bash ~/splunk/run-docker-bank.sh host"
 echo
 
 # O codigo 78 e' esperado: nao propaga como falha.

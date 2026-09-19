@@ -14,38 +14,75 @@ set +e
 # Uso:
 #   ~/carga_locust.sh                      todos os cenarios, 5 usuarios, 60s cada
 #   ~/carga_locust.sh --usuarios 20        mais carga
-#   ~/carga_locust.sh --tempo 180s         cada cenario por 3 minutos
+#   ~/carga_locust.sh --duracao 20m        repete os cenarios por 20 minutos e para
+#   ~/carga_locust.sh --tempo 180s         cada cenario por 3 minutos (nao e' o total)
 #   ~/carga_locust.sh --cenario account    so um cenario
-#   ~/carga_locust.sh --continuo           repete ate Ctrl+C (bom p/ deixar rodando na aula)
+#   ~/carga_locust.sh --continuo           repete ate Ctrl+C
 #   ~/carga_locust.sh --web                sobe a UI do locust em :8089 (interativo)
+#
+# --tempo e' por CENARIO; --duracao e' o total. Com os 5 cenarios e o padrao
+# de 60s, uma rodada leva ~5 min, entao --duracao 20m da' cerca de 4 rodadas.
 # ==================================================
 
-BASE="$HOME/martian-bank-demo-docker"
+BASE="$HOME/bank-demo-docker"
 
 USUARIOS=5
 TEMPO="60s"
 CENARIO="todos"
 CONTINUO=false
 WEB=false
+DURACAO=""
+
+# Aceita 20m, 1h, 90s ou um numero solto (segundos).
+converter_tempo() {
+    case "$1" in
+        *h) echo $(( ${1%h} * 3600 )) ;;
+        *m) echo $(( ${1%m} * 60 )) ;;
+        *s) echo "${1%s}" ;;
+        *)  echo "$1" ;;
+    esac
+}
 
 while [ $# -gt 0 ]; do
     case "$1" in
         --usuarios) USUARIOS="$2"; shift 2 ;;
         --tempo)    TEMPO="$2";    shift 2 ;;
         --cenario)  CENARIO="$2";  shift 2 ;;
+        --duracao)  DURACAO="$2";  shift 2 ;;
         --continuo) CONTINUO=true; shift ;;
         --web)      WEB=true;      shift ;;
         -h|--help)
-            echo "Uso: ~/carga_locust.sh [--usuarios N] [--tempo 60s] [--cenario auth|atm|account|transaction|loan|todos] [--continuo] [--web]"
+            echo "Uso: ~/carga_locust.sh [--usuarios N] [--duracao 20m] [--tempo 60s]"
+            echo "                        [--cenario auth|atm|account|transaction|loan|todos]"
+            echo "                        [--continuo] [--web]"
+            echo
+            echo "  --duracao  tempo TOTAL: repete os cenarios ate acabar e para sozinho"
+            echo "  --tempo    tempo de CADA cenario dentro de uma rodada"
             exit 0 ;;
         *) echo "Opcao desconhecida: $1"; exit 1 ;;
     esac
 done
 
 
+FIM=""
+if [ -n "$DURACAO" ]; then
+    DUR_S=$(converter_tempo "$DURACAO")
+    case "$DUR_S" in
+        ''|*[!0-9]*) echo "❌ --duracao invalida: '$DURACAO' (use 20m, 1h ou 1200s)"; exit 1 ;;
+    esac
+    [ "$DUR_S" -lt 1 ] && { echo "❌ --duracao precisa ser maior que zero."; exit 1; }
+    FIM=$(( $(date +%s) + DUR_S ))
+    CONTINUO=true
+fi
+
 echo "=================================================="
-echo " TESTE DE CARGA - MARTIAN BANK"
+echo " TESTE DE CARGA - FIAP OTEL BANK"
 echo "=================================================="
+if [ -n "$FIM" ]; then
+    echo
+    echo "Rodando por $DURACAO, ate as $(date -d "@$FIM" +%H:%M 2>/dev/null || date -r "$FIM" +%H:%M 2>/dev/null)."
+    echo "Para antes com Ctrl+C."
+fi
 
 
 # ==================================================
@@ -58,7 +95,7 @@ echo "=================================================="
 
 if [ ! -d "$BASE" ]; then
     echo "❌ $BASE nao existe."
-    echo "   Rode antes: cd ~/splunk && bash docker-run-demo-bank.sh host"
+    echo "   Rode antes: cd ~/splunk && bash run-docker-bank.sh host"
     exit 1
 fi
 
@@ -70,7 +107,7 @@ PROJETO=$(docker ps --format '{{.Names}}' \
 
 if [ -z "$PROJETO" ]; then
     echo "❌ Nenhum container do Martian Bank rodando."
-    echo "   Rode antes: cd ~/splunk && bash docker-run-demo-bank.sh host"
+    echo "   Rode antes: cd ~/splunk && bash run-docker-bank.sh host"
     exit 1
 fi
 
@@ -154,10 +191,19 @@ executar() {
 
     local ARQ="$1"
     local NOME="$2"
+    local T="$TEMPO"
+
+    # Com prazo definido, encurta o ultimo cenario em vez de estourar o
+    # tempo que o instrutor reservou.
+    if [ -n "$FIM" ]; then
+        local RESTA=$(( FIM - $(date +%s) ))
+        [ "$RESTA" -le 0 ] && return 0
+        [ "$RESTA" -lt "$(converter_tempo "$TEMPO")" ] && T="${RESTA}s"
+    fi
 
     echo
     echo "--------------------------------------------------"
-    echo "▶ $NOME  ($USUARIOS usuarios, $TEMPO)"
+    echo "▶ $NOME  ($USUARIOS usuarios, $T)"
     echo "--------------------------------------------------"
 
     docker exec \
@@ -171,7 +217,7 @@ executar() {
             --headless \
             -u "$USUARIOS" \
             -r 1 \
-            --run-time "$TEMPO" \
+            --run-time "$T" \
             --only-summary \
         2>&1 | grep -vE "^\[|Starting|Shutting|Cleaning|spawn rate|All users" | tail -20
 }
@@ -222,9 +268,18 @@ RODADA=1
 
 while true; do
 
+    if [ -n "$FIM" ] && [ "$(date +%s)" -ge "$FIM" ]; then
+        break
+    fi
+
     if [ "$CONTINUO" = "true" ]; then
         echo
-        echo "=================== RODADA $RODADA ==================="
+        if [ -n "$FIM" ]; then
+            RESTA_MIN=$(( (FIM - $(date +%s) + 59) / 60 ))
+            echo "=========== RODADA $RODADA - restam ~${RESTA_MIN} min ==========="
+        else
+            echo "=================== RODADA $RODADA ==================="
+        fi
     fi
 
     case "$CENARIO" in
@@ -259,7 +314,11 @@ done
 
 echo
 echo "=================================================="
-echo " CARGA FINALIZADA"
+if [ -n "$FIM" ]; then
+    echo " CARGA FINALIZADA - $RODADA rodada(s) em $DURACAO"
+else
+    echo " CARGA FINALIZADA"
+fi
 echo "=================================================="
 echo
 echo "No Splunk, com a janela em -15m ou -1h:"
@@ -286,6 +345,7 @@ echo "~/carga_locust.sh"
 echo
 echo "  ~/carga_locust.sh                 todos os cenarios, 5 usuarios, 60s cada"
 echo "  ~/carga_locust.sh --usuarios 20   mais carga"
+echo "  ~/carga_locust.sh --duracao 20m   repete por 20 min e para sozinho"
 echo "  ~/carga_locust.sh --continuo      repete ate Ctrl+C"
 echo "  ~/carga_locust.sh --web           UI do locust em :8089"
 echo

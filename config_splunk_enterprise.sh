@@ -51,8 +51,8 @@ else
 fi
 
 COLLECTOR_CONF="/etc/otel/collector/splunk-otel-collector.conf"
-BASE_DOCKER="$HOME/martian-bank-demo-docker"
-[ -d "$BASE_DOCKER" ] || BASE_DOCKER="/home/ec2-user/martian-bank-demo-docker"
+BASE_DOCKER="$HOME/bank-demo-docker"
+[ -d "$BASE_DOCKER" ] || BASE_DOCKER="/home/ec2-user/bank-demo-docker"
 
 echo "============================================================"
 echo " SPLUNK ENTERPRISE EM CONTAINER"
@@ -459,7 +459,7 @@ echo
 # echo
 # echo "    cd $BASE_DOCKER"
 # echo "    sed -i 's/^OTEL_LOGS_EXPORTER=.*/OTEL_LOGS_EXPORTER=otlp/' .env"
-# echo "    cd ~/splunk && bash docker-run-demo-bank.sh host"
+# echo "    cd ~/splunk && bash run-docker-bank.sh host"
 # echo "    # (ou o atalho ~/instalar_bank_docker.sh host, gerado pelo comando acima)"
 # echo
 # echo "  Para incluir tambem o stdout de Node/nginx/UI, suba com o override:"

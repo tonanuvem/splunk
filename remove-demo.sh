@@ -4,7 +4,7 @@ cat > ~/parar_bank.sh <<'EOF'
 set +e
 
 # ==================================================
-# MARTIAN BANK - PARAR E LIMPAR
+# FIAP OTEL BANK - PARAR E LIMPAR
 #
 # Cobre as DUAS formas de execucao:
 #   - local  : processos node/python3 iniciados pelo instalar_bank.sh
@@ -18,7 +18,7 @@ set +e
 # ==================================================
 
 BASE="$HOME/martian-bank-demo"
-BASE_DOCKER="$HOME/martian-bank-demo-docker"
+BASE_DOCKER="$HOME/bank-demo-docker"
 
 REMOVER_IMAGENS=false
 REMOVER_DADOS=false
@@ -41,7 +41,7 @@ done
 
 echo
 echo "=================================================="
-echo " PARANDO MARTIAN BANK"
+echo " PARANDO FIAP OTEL BANK"
 echo "=================================================="
 
 if [ "$REMOVER_IMAGENS" = "true" ]; then
@@ -164,7 +164,7 @@ else
     # --- 3a. pelos arquivos de compose, se o clone existir ---
 
     echo
-    echo "3a. Compose do martian-bank-demo-docker"
+    echo "3a. Compose do bank-demo-docker"
     echo "--------------------------------------------------"
 
     if [ -d "$BASE_DOCKER" ]; then
@@ -330,7 +330,7 @@ fi
 
 echo
 echo "=================================================="
-echo "4. LIBERANDO PORTAS DO MARTIAN BANK"
+echo "4. LIBERANDO PORTAS DO FIAP OTEL BANK"
 echo "=================================================="
 
 
@@ -543,7 +543,7 @@ fi
 
 echo
 echo "=================================================="
-echo " MARTIAN BANK PARADO"
+echo " FIAP OTEL BANK PARADO"
 echo "=================================================="
 
 
@@ -571,8 +571,8 @@ echo
 echo "Para iniciar novamente:"
 echo
 echo "  local:  ~/instalar_bank.sh"
-echo "  docker: cd ~/splunk && bash docker-run-demo-bank.sh host"
-echo "          cd ~/splunk && bash docker-run-demo-bank.sh bridge"
+echo "  docker: cd ~/splunk && bash run-docker-bank.sh host"
+echo "          cd ~/splunk && bash run-docker-bank.sh bridge"
 echo "          (apos a 1a vez, o atalho ~/instalar_bank_docker.sh tambem serve)"
 
 
