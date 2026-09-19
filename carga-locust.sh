@@ -32,6 +32,9 @@ CENARIO="todos"
 CONTINUO=false
 WEB=false
 DURACAO=""
+DETALHE=false
+CENARIO_N=0
+CENARIO_TOT=1
 
 # Aceita 20m, 1h, 90s ou um numero solto (segundos).
 converter_tempo() {
@@ -50,6 +53,7 @@ while [ $# -gt 0 ]; do
         --cenario)  CENARIO="$2";  shift 2 ;;
         --duracao)  DURACAO="$2";  shift 2 ;;
         --continuo) CONTINUO=true; shift ;;
+        --detalhe)  DETALHE=true;  shift ;;
         --web)      WEB=true;      shift ;;
         -h|--help)
             echo "Uso: ~/carga_locust.sh [--usuarios N] [--duracao 20m] [--tempo 60s]"
@@ -58,6 +62,7 @@ while [ $# -gt 0 ]; do
             echo
             echo "  --duracao  tempo TOTAL: repete os cenarios ate acabar e para sozinho"
             echo "  --tempo    tempo de CADA cenario dentro de uma rodada"
+            echo "  --detalhe  mostra a saida completa do locust, nao so' o resumo"
             exit 0 ;;
         *) echo "Opcao desconhecida: $1"; exit 1 ;;
     esac
@@ -201,12 +206,25 @@ executar() {
         [ "$RESTA" -lt "$(converter_tempo "$TEMPO")" ] && T="${RESTA}s"
     fi
 
-    echo
-    echo "--------------------------------------------------"
-    echo "▶ $NOME  ($USUARIOS usuarios, $T)"
-    echo "--------------------------------------------------"
+    CENARIO_N=$((CENARIO_N + 1))
 
-    docker exec \
+    # Com prazo, o progresso e' do tempo total; sem prazo, e' a posicao do
+    # cenario na rodada -- que e' a unica nocao de "quanto falta" que existe.
+    local PROG
+    if [ -n "$FIM" ]; then
+        local DECORRIDO=$(( $(date +%s) - (FIM - DUR_S) ))
+        local PCT=$(( DECORRIDO * 100 / DUR_S ))
+        [ "$PCT" -gt 100 ] && PCT=100
+        PROG=$(printf "[%3d%%]" "$PCT")
+    else
+        PROG=$(printf "[%d/%d]" "$CENARIO_N" "$CENARIO_TOT")
+    fi
+
+    echo
+    echo "$PROG ▶ $NOME  ·  $USUARIOS usuarios, $T"
+
+    local SAIDA
+    SAIDA=$(docker exec \
         -e VITE_ACCOUNTS_URL="$U_ACCOUNTS" \
         -e VITE_USERS_URL="$U_USERS" \
         -e VITE_ATM_URL="$U_ATM" \
@@ -219,7 +237,53 @@ executar() {
             -r 1 \
             --run-time "$T" \
             --only-summary \
-        2>&1 | grep -vE "^\[|Starting|Shutting|Cleaning|spawn rate|All users" | tail -20
+        2>&1)
+
+    if [ "$DETALHE" = "true" ]; then
+        echo "$SAIDA" | grep -vE "^\[|Starting|Shutting|Cleaning|spawn rate|All users"
+        return 0
+    fi
+
+    resumir "$SAIDA"
+}
+
+
+# O locust imprime duas tabelas por cenario, uma por endpoint. Numa rodada de
+# cinco cenarios isso enche a tela e esconde justamente o que interessa. Aqui
+# fica so' a linha Aggregated das duas, condensada.
+resumir() {
+
+    local SAIDA="$1"
+    local AGREGADOS RESUMO PERCENTIS
+
+    AGREGADOS=$(echo "$SAIDA" | grep -E "^[[:space:]]*Aggregated")
+    RESUMO=$(echo "$AGREGADOS" | head -1)
+    PERCENTIS=$(echo "$AGREGADOS" | tail -1)
+
+    if [ -z "$RESUMO" ]; then
+        echo "   (sem estatisticas - o locust nao chegou a rodar)"
+        echo "$SAIDA" | grep -iE "error|refused|timeout" | head -3 | sed 's/^/   /'
+        return 0
+    fi
+
+    # Aggregated  <reqs>  <fails>(<pct>) | <avg> <min> <max> <med> | <req/s> <fail/s>
+    local REQS FAILS AVG MAX MED RPS P95
+    REQS=$(echo "$RESUMO"    | awk '{print $2}')
+    FAILS=$(echo "$RESUMO"   | awk '{print $3}')
+    AVG=$(echo "$RESUMO"     | awk '{print $5}')
+    MAX=$(echo "$RESUMO"     | awk '{print $7}')
+    MED=$(echo "$RESUMO"     | awk '{print $8}')
+    RPS=$(echo "$RESUMO"     | awk '{print $10}')
+    # na tabela de percentis: 50 66 75 80 90 95 ... -> p95 e' o sexto valor
+    [ "$PERCENTIS" != "$RESUMO" ] && P95=$(echo "$PERCENTIS" | awk '{print $7}')
+
+    local ALERTA=""
+    case "$FAILS" in
+        0|0\(*) : ;;
+        *) ALERTA="  ⚠️" ;;
+    esac
+
+    echo "   ${REQS} req · ${FAILS} falhas · ${RPS} req/s · med ${MED}ms · p95 ${P95:-?}ms · max ${MAX}ms${ALERTA}"
 }
 
 
@@ -264,9 +328,16 @@ echo "Cada cenario exercita um caminho diferente. No APM isso aparece como"
 echo "o service map se preenchendo: dashboard no centro, chamando accounts,"
 echo "transactions, loan, e os dois servicos Node."
 
+case "$CENARIO" in
+    todos) CENARIO_TOT=5 ;;
+    *)     CENARIO_TOT=1 ;;
+esac
+
 RODADA=1
 
 while true; do
+
+    CENARIO_N=0
 
     if [ -n "$FIM" ] && [ "$(date +%s)" -ge "$FIM" ]; then
         break
@@ -275,10 +346,14 @@ while true; do
     if [ "$CONTINUO" = "true" ]; then
         echo
         if [ -n "$FIM" ]; then
-            RESTA_MIN=$(( (FIM - $(date +%s) + 59) / 60 ))
-            echo "=========== RODADA $RODADA - restam ~${RESTA_MIN} min ==========="
+            RESTA=$(( FIM - $(date +%s) ))
+            if [ "$RESTA" -ge 60 ]; then
+                echo "--- RODADA $RODADA · restam ~$(( RESTA / 60 )) min ---"
+            else
+                echo "--- RODADA $RODADA · restam ${RESTA}s ---"
+            fi
         else
-            echo "=================== RODADA $RODADA ==================="
+            echo "--- RODADA $RODADA ---"
         fi
     fi
 
