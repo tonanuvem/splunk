@@ -50,14 +50,29 @@ nome que **você** escolhe, e produz taxa de erro, latência e volume por nome.
 **Como criar** — `Settings > APM Configuration > Business Workflow Rules`,
 uma regra por funcionalidade:
 
-| Nome da workflow | Condição (span do serviço `dashboard`) |
-|---|---|
-| `Autenticação` | `service = dashboard` e `operation = POST /api/users/auth` |
-| `Abertura de conta` | `service = dashboard` e `operation = POST /account/create` |
-| `Transferência entre contas` | `service = dashboard` e `operation = POST /transaction/` |
-| `Extrato da conta` | `service = dashboard` e `operation = POST /transaction/history` |
-| `Solicitação de empréstimo` | `service = dashboard` e `operation = POST /loan/` |
-| `Localizar caixa eletrônico` | `service = dashboard` e `operation = POST /api/atm/` |
+Em todas: **Rule type** `Service`, **Service** `dashboard`,
+**Environments** `lab-fiap`.
+
+| Business transaction name | Endpoints | Valor |
+|---|---|---|
+| `Autenticação` | That contain | `/api/users/auth` |
+| `Abertura de conta` | That contain | `/account/create` |
+| `Transferência entre contas` | **Specific endpoints** | `POST /transaction/` |
+| `Extrato da conta` | That contain | `/transaction/history` |
+| `Solicitação de empréstimo` | **Specific endpoints** | `POST /loan/` |
+| `Localizar caixa eletrônico` | **Specific endpoints** | `POST /api/atm/` |
+
+**Por que três delas não podem usar *That contain*.** A opção casa por
+substring, e no BFF há rotas que são prefixo de outras do mesmo serviço:
+
+- `/transaction/` também casaria com `/transaction/history` e
+  `/transaction/zelle/` — três jornadas distintas sob um nome só;
+- `/loan/` também casaria com `/loan/history`, que é consulta, não solicitação;
+- `/api/atm/` também casaria com o `GET` de um caixa específico.
+
+O erro é silencioso: a workflow aparece, com números — só que errados, porque
+misturam jornadas. Vale como exemplo em aula de indicador que parece saudável
+e não mede o que diz medir.
 
 Ancore no `dashboard`, não no serviço de domínio: com o RUM ligado a raiz do
 traço é o navegador, e prender a regra ao BFF mantém o nome estável.

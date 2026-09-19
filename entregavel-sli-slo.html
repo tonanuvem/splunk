@@ -138,6 +138,36 @@ textarea{resize:vertical; min-height:62px; line-height:1.5}
 .ref dt{color:var(--ink-soft)}
 .ref dd{margin:0; font-family:"IBM Plex Mono",monospace; font-size:12.5px}
 
+/* Reproduz os rotulos do dialogo do Splunk, em ingles, para o aluno casar
+   campo a campo com a tela em vez de traduzir de cabeca. */
+.regra{
+  border:1px solid var(--accent); border-radius:10px; padding:14px 16px;
+  margin-bottom:14px; background:var(--accent-soft); font-size:13.5px;
+}
+.regra-t{
+  font-size:11.5px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--accent); font-weight:600; margin-bottom:4px;
+}
+.regra-s{color:var(--ink-soft); font-size:12.5px; margin:0 0 11px; max-width:60ch}
+.regra dl{display:grid; grid-template-columns:max-content 1fr; gap:6px 14px; margin:0}
+.regra dt{color:var(--ink-soft); font-size:12.5px}
+.regra dd{margin:0; font-family:"IBM Plex Mono",monospace; font-size:12.5px; overflow-wrap:anywhere}
+.regra-a{
+  margin:12px 0 0; padding:9px 11px; border-radius:7px; font-size:12.5px; line-height:1.45;
+  background:var(--gold-soft); border-left:3px solid var(--gold); color:var(--ink-soft);
+}
+.regra-a b{color:var(--gold)}
+.regra-a code{font-family:"IBM Plex Mono",monospace; font-size:11.5px}
+.regra-a[hidden]{display:none !important}
+
+/* Em tela estreita, "Business transaction name" ocupa a coluna inteira e
+   espreme o valor a ponto de "Service" quebrar no meio. Empilha. */
+@media (max-width:620px){
+  .regra dl, .ref dl{grid-template-columns:1fr; gap:1px}
+  .regra dt, .ref dt{margin-top:8px}
+  .regra dl > dt:first-child, .ref dl > dt:first-child{margin-top:0}
+}
+
 /* ---------- pontos de falha ---------- */
 .falhas{display:flex; flex-direction:column; gap:11px}
 .falha{display:flex; gap:11px; align-items:flex-start}
@@ -148,6 +178,10 @@ textarea{resize:vertical; min-height:62px; line-height:1.5}
 }
 .falha-f{flex:1 1 auto; display:flex; gap:10px; flex-wrap:wrap; min-width:0}
 .falha-f>div{flex:1 1 170px; min-width:0}
+/* O exemplo fica FORA do campo: dentro, o placeholder era cortado pela
+   largura da coluna e o aluno lia meia frase. */
+.ex{font-size:12px; color:var(--ink-faint); line-height:1.4; margin:5px 0 0}
+.ex b{color:var(--ink-soft); font-weight:600}
 
 /* ---------- SLI ---------- */
 .sli{border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:13px; background:var(--surface-2)}
@@ -239,6 +273,20 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
 
   <label>Jornada de negócio</label>
   <div class="chips" id="chips" role="group" aria-label="Jornada de negócio"></div>
+  <div class="regra" id="regra" hidden>
+    <div class="regra-t">Passo 6 · APM Configuration › Business transaction rule</div>
+    <p class="regra-s">Crie esta regra no Splunk: é ela que faz a sua jornada
+      aparecer no APM com nome de negócio, em vez de nome de rota.</p>
+    <dl>
+      <dt>Rule type</dt><dd>Service</dd>
+      <dt>Service</dt><dd>dashboard</dd>
+      <dt>Endpoints</dt><dd id="g-crit"></dd>
+      <dt>Environments</dt><dd>lab-fiap</dd>
+      <dt>Business transaction name</dt><dd id="g-nome"></dd>
+    </dl>
+    <p class="regra-a" id="g-aviso" hidden></p>
+  </div>
+
   <div class="ref" id="ref" hidden>
     <div class="ref-t">Referência do ambiente</div>
     <dl>
@@ -251,7 +299,11 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
 
 <section>
   <div class="step"><span class="num">2</span><h2>Jornada e resultado de negócio</h2></div>
-  <p class="hint">Escreva do ponto de vista de quem usa o banco, não de quem opera o sistema.</p>
+  <p class="hint"><strong>Antes de abrir qualquer dashboard</strong>, faça a
+  jornada no navegador, de ponta a ponta. Depois faça de novo errado de
+  propósito — senha errada, valor maior que o saldo, campo vazio — e veja como
+  o sistema responde. Só então escreva, do ponto de vista de quem usa o banco,
+  não de quem opera o sistema.</p>
   <div class="field"><label for="resultado">Qual é o resultado esperado da jornada?</label>
     <textarea id="resultado" placeholder="O cliente consegue…"></textarea></div>
   <div class="field" style="margin-bottom:0"><label for="sucesso">Qual evento representa sucesso?</label>
@@ -260,7 +312,14 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
 
 <section>
   <div class="step"><span class="num">3</span><h2>Três pontos de falha</h2></div>
-  <p class="hint">Não é o que tem mais chance de quebrar — é o que, quebrando, <strong>impede o resultado de negócio</strong>. Pelo menos um deles não deveria ser um serviço.</p>
+  <p class="hint">Abra <code>APM › Service Map</code>, filtre
+  <code>Environment: lab-fiap</code> na janela de <code>-15m</code> e siga a
+  cadeia da sua jornada. Confira num traço real em <code>APM › Traces</code>.
+  Repare se algum nó aparece <strong>tracejado</strong> — e descubra o que
+  você não consegue ver dentro dele.<br><br>
+  Escolha então os três pontos cuja falha mais dói. Não é o que tem mais chance
+  de quebrar — é o que, quebrando, <strong>impede o resultado de negócio</strong>.
+  Pelo menos um deles não deveria ser um serviço.</p>
   <div class="falhas" id="falhas"></div>
 </section>
 
@@ -340,25 +399,48 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
 <script>
 "use strict";
 
+// "That contain" casa por substring. Onde a rota e' prefixo de outra do
+// MESMO servico, essa opcao juntaria jornadas diferentes sob um nome so' --
+// por isso tres delas exigem "Specific endpoints".
 const JORNADAS = {
   auth:{nome:"Autenticação", tela:"/login", rota:"POST /api/users/auth",
         cam:"dashboard → customer-auth → mongodb:martianbank",
-        lat:[["dashboard","19 ms"],["customer-auth","101 ms"],["mongodb","4 ms"]]},
+        lat:[["dashboard","19 ms"],["customer-auth","101 ms"],["mongodb","4 ms"]],
+        regra:{crit:'"That contain"', val:"/api/users/auth",
+               nome:"Autenticação", aviso:""}},
+
   conta:{nome:"Abrir conta", tela:"/new-account", rota:"POST /account/create",
         cam:"dashboard → accounts → mongodb:bank",
-        lat:[["dashboard","19 ms"],["accounts","5 ms"],["mongodb","3 ms"]]},
+        lat:[["dashboard","19 ms"],["accounts","5 ms"],["mongodb","3 ms"]],
+        regra:{crit:'"That contain"', val:"/account/create",
+               nome:"Abertura de conta", aviso:""}},
+
   transf:{nome:"Transferir entre contas", tela:"/transfer", rota:"POST /transaction/",
         cam:"dashboard → transactions → mongodb:bank",
-        lat:[["dashboard","19 ms"],["transactions","3 ms"],["mongodb","3 ms"]]},
+        lat:[["dashboard","19 ms"],["transactions","3 ms"],["mongodb","3 ms"]],
+        regra:{crit:'"Specific endpoints"', val:"POST /transaction/",
+               nome:"Transferência entre contas",
+               aviso:"não use <em>That contain</em> com <code>/transaction/</code>: ele casaria também com /transaction/history e /transaction/zelle/, e três jornadas virariam uma só."}},
+
   extrato:{nome:"Extrato da conta", tela:"/transactions", rota:"POST /transaction/history",
         cam:"dashboard → transactions → mongodb:bank",
-        lat:[["dashboard","19 ms"],["transactions","3 ms"],["mongodb","3 ms"]]},
+        lat:[["dashboard","19 ms"],["transactions","3 ms"],["mongodb","3 ms"]],
+        regra:{crit:'"That contain"', val:"/transaction/history",
+               nome:"Extrato da conta", aviso:""}},
+
   emprestimo:{nome:"Solicitar empréstimo", tela:"/new-loan", rota:"POST /loan/",
         cam:"dashboard → loan → mongodb:bank",
-        lat:[["dashboard","19 ms"],["loan","23 ms"],["mongodb","3 ms"]]},
+        lat:[["dashboard","19 ms"],["loan","23 ms"],["mongodb","3 ms"]],
+        regra:{crit:'"Specific endpoints"', val:"POST /loan/",
+               nome:"Solicitação de empréstimo",
+               aviso:"não use <em>That contain</em> com <code>/loan/</code>: ele casaria também com /loan/history, que é consulta, não solicitação."}},
+
   atm:{nome:"Localizar caixas eletrônicos", tela:"/find-atm", rota:"POST /api/atm/",
         cam:"dashboard → atm-locator → mongodb:martianbank",
-        lat:[["dashboard","19 ms"],["atm-locator","8 ms"],["mongodb","4 ms"]]}
+        lat:[["dashboard","19 ms"],["atm-locator","8 ms"],["mongodb","4 ms"]],
+        regra:{crit:'"Specific endpoints"', val:"POST /api/atm/",
+               nome:"Localizar caixa eletrônico",
+               aviso:"não use <em>That contain</em> com <code>/api/atm/</code>: ele casaria também com o GET de um caixa específico."}}
 };
 
 const SLIS = [
@@ -382,15 +464,15 @@ let jornada = "";
 // dependência compartilhada e algo que não é serviço nenhum. Os três
 // doem no cliente; nenhum deles é "o que quebra com mais frequência".
 const EX_FALHA = [
-  {a:"ex.: o serviço de domínio para de responder",
-   b:"ex.: a operação não conclui e ele não sabe se valeu",
-   c:"ex.: taxa de erro da Business Workflow no APM"},
-  {a:"ex.: o banco compartilhado fica lento ou indisponível",
-   b:"ex.: tela carregando até desistir",
-   c:"ex.: latência p90 da workflow — a causa fica invisível (Inferred Service)"},
-  {a:"ex.: algo fora do backend — permissão negada, sessão vencida, tela quebrada",
-   b:"ex.: acredita que deu certo, e não deu",
-   c:"ex.: só o RUM enxerga; não há erro nenhum no servidor"}
+  {a:"o serviço de domínio para de responder",
+   b:"a operação não conclui e ele não sabe se valeu",
+   c:"taxa de erro da Business Transaction no APM"},
+  {a:"o banco compartilhado fica lento ou indisponível",
+   b:"tela carregando até ele desistir",
+   c:"latência p90 — mas a causa fica invisível (Inferred Service)"},
+  {a:"algo fora do backend: permissão negada, sessão vencida, tela quebrada",
+   b:"acredita que deu certo, e não deu",
+   c:"só o RUM enxerga; não há erro nenhum no servidor"}
 ];
 
 el("falhas").innerHTML = [1,2,3].map(n => {
@@ -400,11 +482,11 @@ el("falhas").innerHTML = [1,2,3].map(n => {
     <span class="falha-n">${n}</span>
     <div class="falha-f">
       <div><label for="f${n}a">Ponto de falha</label>
-        <input type="text" id="f${n}a" placeholder="${x.a}"></div>
+        <input type="text" id="f${n}a"><p class="ex"><b>ex.:</b> ${x.a}</p></div>
       <div><label for="f${n}b">O que o cliente vê</label>
-        <input type="text" id="f${n}b" placeholder="${x.b}"></div>
+        <input type="text" id="f${n}b"><p class="ex"><b>ex.:</b> ${x.b}</p></div>
       <div><label for="f${n}c">Como eu detectaria</label>
-        <input type="text" id="f${n}c" placeholder="${x.c}"></div>
+        <input type="text" id="f${n}c"><p class="ex"><b>ex.:</b> ${x.c}</p></div>
     </div>
   </div>`;
 }).join("");
@@ -445,6 +527,14 @@ function pintarJornada(){
     c.setAttribute("aria-pressed", String(c.dataset.j === jornada)));
   const j = JORNADAS[jornada];
   el("ref").hidden = !j;
+  el("regra").hidden = !j;
+  if (j){
+    el("g-crit").textContent = j.regra.crit + "  \u2192  " + j.regra.val;
+    el("g-nome").textContent = j.regra.nome;
+    const av = el("g-aviso");
+    av.hidden = !j.regra.aviso;
+    av.innerHTML = j.regra.aviso ? "<b>Atenção:</b> " + j.regra.aviso : "";
+  }
   const refs = el("lat-refs");
   if (!j){ if (refs) refs.innerHTML = ""; return; }
   el("r-tela").textContent = j.tela;
