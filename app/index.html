@@ -304,7 +304,7 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
       aparecer no APM com nome de negócio, em vez de nome de rota.</p>
     <dl>
       <dt>Rule type</dt><dd>Service</dd>
-      <dt>Service</dt><dd>dashboard</dd>
+      <dt>Service</dt><dd id="g-srv"></dd>
       <dt>Endpoints</dt><dd id="g-crit"></dd>
       <dt>Environments</dt><dd>lab-fiap</dd>
       <dt>Business transaction name</dt><dd id="g-nome"></dd>
@@ -450,26 +450,27 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
 // MESMO servico, essa opcao juntaria jornadas diferentes sob um nome so' --
 // por isso tres delas exigem "Specific endpoints".
 const JORNADAS = {
-  auth:{nome:"Autenticação", tela:"/login", rota:"POST /api/users/auth",
-        cam:"dashboard → customer-auth → mongodb:martianbank",
-        lat:[["dashboard","19 ms"],["customer-auth","101 ms"],["mongodb","4 ms"]],
+  auth:{nome:"Autenticação", tela:"/login", rota:"POST /api/users/auth (:8000)",
+        cam:"navegador → customer-auth → mongodb:bank",
+        lat:[["customer-auth","101 ms"],["mongodb","3 ms"]],
         cenario:"auth",
-        regra:{crit:'"That contain"', val:"/api/users/auth",
-               nome:"Autenticação", aviso:""}},
+        regra:{crit:'"That contain"', val:"/api/users/auth", servico:"customer-auth",
+               nome:"Autenticação",
+               aviso:"esta jornada <b>não passa pelo BFF</b>: o navegador chama o <code>customer-auth</code> direto na porta 8000. Por isso o Service a ancorar e' <code>customer-auth</code>, e nao <code>dashboard</code>."}},
 
   conta:{nome:"Abrir conta", tela:"/new-account", rota:"POST /account/create",
         cam:"dashboard → accounts → mongodb:bank",
         lat:[["dashboard","19 ms"],["accounts","5 ms"],["mongodb","3 ms"]],
         cenario:"account",
         regra:{crit:'"That contain"', val:"/account/create",
-               nome:"Abertura de conta", aviso:""}},
+               servico:"dashboard", nome:"Abertura de conta", aviso:""}},
 
   transf:{nome:"Transferir entre contas", tela:"/transfer", rota:"POST /transaction/",
         cam:"dashboard → transactions → mongodb:bank",
         lat:[["dashboard","19 ms"],["transactions","3 ms"],["mongodb","3 ms"]],
         cenario:"transaction",
         regra:{crit:'"Specific endpoints"', val:"POST /transaction/",
-               nome:"Transferência entre contas",
+               servico:"dashboard", nome:"Transferência entre contas",
                aviso:"não use <em>That contain</em> com <code>/transaction/</code>: ele casaria também com /transaction/history e /transaction/zelle/, e três jornadas virariam uma só."}},
 
   extrato:{nome:"Extrato da conta", tela:"/transactions", rota:"POST /transaction/history",
@@ -477,23 +478,23 @@ const JORNADAS = {
         lat:[["dashboard","19 ms"],["transactions","3 ms"],["mongodb","3 ms"]],
         cenario:"transaction",
         regra:{crit:'"That contain"', val:"/transaction/history",
-               nome:"Extrato da conta", aviso:""}},
+               servico:"dashboard", nome:"Extrato da conta", aviso:""}},
 
   emprestimo:{nome:"Solicitar empréstimo", tela:"/new-loan", rota:"POST /loan/",
         cam:"dashboard → loan → mongodb:bank",
-        lat:[["dashboard","19 ms"],["loan","23 ms"],["mongodb","3 ms"]],
+        lat:[["dashboard","19 ms"],["loan","20 ms"],["mongodb","3 ms"]],
         cenario:"loan",
         regra:{crit:'"Specific endpoints"', val:"POST /loan/",
-               nome:"Solicitação de empréstimo",
+               servico:"dashboard", nome:"Solicitação de empréstimo",
                aviso:"não use <em>That contain</em> com <code>/loan/</code>: ele casaria também com /loan/history, que é consulta, não solicitação."}},
 
-  atm:{nome:"Localizar caixas eletrônicos", tela:"/find-atm", rota:"POST /api/atm/",
-        cam:"dashboard → atm-locator → mongodb:martianbank",
-        lat:[["dashboard","19 ms"],["atm-locator","8 ms"],["mongodb","4 ms"]],
+  atm:{nome:"Localizar caixas eletrônicos", tela:"/find-atm", rota:"POST /api/atm/ (:8001)",
+        cam:"navegador → atm-locator → mongodb:bank",
+        lat:[["atm-locator","6 ms"],["mongodb","3 ms"]],
         cenario:"atm",
-        regra:{crit:'"Specific endpoints"', val:"POST /api/atm/",
+        regra:{crit:'"Specific endpoints"', val:"POST /api/atm/", servico:"atm-locator",
                nome:"Localizar caixa eletrônico",
-               aviso:"não use <em>That contain</em> com <code>/api/atm/</code>: ele casaria também com o GET de um caixa específico."}}
+               aviso:"esta jornada <b>não passa pelo BFF</b>: o navegador chama o <code>atm-locator</code> direto na porta 8001. Ancore em <code>atm-locator</code>. E evite <em>That contain</em>, que casaria com o GET de um caixa específico."}}
 };
 
 const SLIS = [
@@ -582,6 +583,7 @@ function pintarJornada(){
   el("ref").hidden = !j;
   el("regra").hidden = !j;
   if (j){
+    el("g-srv").textContent = j.regra.servico;
     el("g-crit").textContent = j.regra.crit + "  \u2192  " + j.regra.val;
     el("g-nome").textContent = j.regra.nome;
     el("c-cen").textContent = "(--cenario " + j.cenario + ")";

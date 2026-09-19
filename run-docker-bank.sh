@@ -582,8 +582,8 @@ OTEL_LOGS_EXPORTER=$LOGS_EXPORTER
 OTEL_METRICS_EXPORTER=none
 SPLUNK_PROFILER_ENABLED=false
 
-DB_URL=mongodb://localhost:27017/martianbank
-DB_URL_BRIDGE=mongodb://host.docker.internal:27017/martianbank
+DB_URL=mongodb://localhost:27017/bank
+DB_URL_BRIDGE=mongodb://host.docker.internal:27017/bank
 ENVFILE
 
 echo "✅ $BASE/.env"
@@ -1118,7 +1118,7 @@ docker ps \
 
 echo
 echo "MongoDB:"
-echo "mongodb://localhost:27017/martianbank"
+echo "mongodb://localhost:27017/bank"
 
 
 # ==================================================

@@ -5,38 +5,59 @@ Splunk Observability Cloud **já oferece pronto**, sem construir nada do zero.
 
 ---
 
-## O fato que torna isso simples
+## A topologia real — e ela não é uniforme
 
-O serviço `dashboard` é um **BFF** (Backend for Frontend): toda funcionalidade
-de negócio entra por **exatamente um endpoint dele**, que por sua vez chama um
-único serviço de domínio.
+Há **dois caminhos** no FIAP OTEL Bank, e confundi-los faz a regra do APM
+capturar zero tráfego.
+
+**Quatro jornadas passam pelo BFF.** O serviço `dashboard` (porta 5000) recebe
+a chamada e repassa ao serviço de domínio:
 
 ```
-navegador  →  dashboard (BFF)  →  serviço de domínio  →  MongoDB
-  (RUM)         1 rota = 1                (APM)
-             função de negócio
+navegador  →  dashboard (BFF)  →  accounts | transactions | loan  →  MongoDB
 ```
 
-Isso dá uma relação **1:1 entre rota e função de negócio**. É a condição que
-torna as *Business Transactions* do APM utilizáveis sem tocar em código: cada
-regra vira uma funcionalidade, com nome de negócio em vez de nome técnico.
+**Duas jornadas não passam.** O navegador chama os serviços Node
+**diretamente**, e o `dashboard` não participa:
+
+```
+navegador  →  customer-auth (:8000)  →  MongoDB
+navegador  →  atm-locator   (:8001)  →  MongoDB
+```
+
+Isso está em `ui/src/slices/apiUrls.js`: `VITE_USERS_URL` aponta para `:8000` e
+`VITE_ATM_URL` para `:8001`, enquanto contas, transferências e empréstimos vão
+para `:5000`. É por isso que, no Service Map, `customer-auth` e `atm-locator`
+aparecem como ilhas, sem aresta vindo do `dashboard`.
+
+**Não é defeito de configuração, e não vale "consertar".** O `dashboard` até
+tem rotas de proxy para `/api/users/auth` e `/api/atm/`, mas elas devolvem
+apenas o JSON: **descartam o `Set-Cookie`**. Como o `customer-auth` entrega o
+JWT num cookie httpOnly, rotear o login pelo BFF quebraria a autenticação.
+Uniformizar exigiria repassar cabeçalhos no `dashboard.py` — mudança de código
+que o lab não precisa.
+
+O que muda, na prática: a **âncora da regra** é o serviço que de fato recebe a
+chamada do navegador. Em cada caso continua havendo relação 1:1 entre rota e
+função de negócio, que é a condição para usar as *Business Transactions* sem
+tocar em código.
 
 ---
 
 ## Mapa das seis funcionalidades
 
-| Funcionalidade de negócio | Tela (RUM) | Entrada no BFF `dashboard` (APM) | Serviço de domínio | Rota do domínio |
+| Funcionalidade de negócio | Tela (RUM) | Quem o navegador chama | Serviço que responde | Rota |
 |---|---|---|---|---|
-| **AUTENTICAÇÃO** | `/login` | `POST /api/users/auth` | `customer-auth` | `POST /api/users/auth` |
-| *(cadastro de cliente)* | `/register` | `POST /api/users` | `customer-auth` | `POST /api/users` |
-| **ABRIR CONTAS** | `/new-account` | `POST /account/create` | `accounts` | `POST /create-account` |
-| *(consultar contas)* | `/acc-info` | `POST /account/allaccounts` | `accounts` | `POST /get-all-accounts` |
-| **TRANSFERIR ENTRE CONTAS** | `/transfer` | `POST /transaction/` | `transactions` | `POST /transfer` |
-| *(transferência Zelle)* | `/transfer` | `POST /transaction/zelle/` | `transactions` | `POST /zelle` |
-| **EXTRATO DA CONTA** | `/transactions` | `POST /transaction/history` | `transactions` | `POST /transaction-history` |
-| **SOLICITAR EMPRÉSTIMO** | `/new-loan` | `POST /loan/` | `loan` | `POST /loan/request` |
-| *(histórico de empréstimos)* | `/loan` | `POST /loan/history` | `loan` | `POST /loan/history` |
-| **LOCALIZAR CAIXAS ELETRÔNICOS** | `/find-atm` | `POST /api/atm/` | `atm-locator` | `POST /api/atm` |
+| **AUTENTICAÇÃO** | `/login` | `customer-auth:8000` | `customer-auth` | `POST /api/users/auth` |
+| *(cadastro de cliente)* | `/register` | `customer-auth:8000` | `customer-auth` | `POST /api/users` |
+| **ABRIR CONTAS** | `/new-account` | `dashboard:5000` `POST /account/create` | `accounts` | `POST /create-account` |
+| *(consultar contas)* | `/acc-info` | `dashboard:5000` `POST /account/allaccounts` | `accounts` | `POST /get-all-accounts` |
+| **TRANSFERIR ENTRE CONTAS** | `/transfer` | `dashboard:5000` `POST /transaction/` | `transactions` | `POST /transfer` |
+| *(transferência Zelle)* | `/transfer` | `dashboard:5000` `POST /transaction/zelle/` | `transactions` | `POST /zelle` |
+| **EXTRATO DA CONTA** | `/transactions` | `dashboard:5000` `POST /transaction/history` | `transactions` | `POST /transaction-history` |
+| **SOLICITAR EMPRÉSTIMO** | `/new-loan` | `dashboard:5000` `POST /loan/` | `loan` | `POST /loan/request` |
+| *(histórico de empréstimos)* | `/loan` | `dashboard:5000` `POST /loan/history` | `loan` | `POST /loan/history` |
+| **LOCALIZAR CAIXAS ELETRÔNICOS** | `/find-atm` | `atm-locator:8001` | `atm-locator` | `POST /api/atm` |
 
 ---
 
@@ -50,17 +71,21 @@ nome que **você** escolhe, e produz taxa de erro, latência e volume por nome.
 **Como criar** — `Settings > APM Configuration > Business transaction rule`,
 uma regra por funcionalidade:
 
-Em todas: **Rule type** `Service`, **Service** `dashboard`,
-**Environments** `lab-fiap`.
+Em todas: **Rule type** `Service`, **Environments** `lab-fiap`. O **Service**
+muda conforme o caminho — é o detalhe que decide se a regra captura algo.
 
-| Business transaction name | Endpoints | Valor |
-|---|---|---|
-| `Autenticação` | That contain | `/api/users/auth` |
-| `Abertura de conta` | That contain | `/account/create` |
-| `Transferência entre contas` | **Specific endpoints** | `POST /transaction/` |
-| `Extrato da conta` | That contain | `/transaction/history` |
-| `Solicitação de empréstimo` | **Specific endpoints** | `POST /loan/` |
-| `Localizar caixa eletrônico` | **Specific endpoints** | `POST /api/atm/` |
+| Business transaction name | Service | Endpoints | Valor |
+|---|---|---|---|
+| `Autenticação` | **`customer-auth`** | That contain | `/api/users/auth` |
+| `Abertura de conta` | `dashboard` | That contain | `/account/create` |
+| `Transferência entre contas` | `dashboard` | **Specific endpoints** | `POST /transaction/` |
+| `Extrato da conta` | `dashboard` | That contain | `/transaction/history` |
+| `Solicitação de empréstimo` | `dashboard` | **Specific endpoints** | `POST /loan/` |
+| `Localizar caixa eletrônico` | **`atm-locator`** | **Specific endpoints** | `POST /api/atm/` |
+
+Ancorar as duas primeiras em `dashboard` produz uma Business Transaction que
+existe, aparece na lista e **nunca registra um traço** — o tipo de erro que só
+se descobre quando alguém repara que o gráfico está vazio.
 
 **Por que três delas não podem usar *That contain*.** A opção casa por
 substring, e no BFF há rotas que são prefixo de outras do mesmo serviço:
@@ -74,8 +99,9 @@ O erro é silencioso: a workflow aparece, com números — só que errados, porq
 misturam jornadas. Vale como exemplo em aula de indicador que parece saudável
 e não mede o que diz medir.
 
-Ancore no `dashboard`, não no serviço de domínio: com o RUM ligado a raiz do
-traço é o navegador, e prender a regra ao BFF mantém o nome estável.
+Nas quatro que passam pelo BFF, ancore no `dashboard` e não no serviço de
+domínio: com o RUM ligado a raiz do traço é o navegador, e prender a regra ao
+ponto de entrada mantém o nome estável.
 
 **Onde ver depois de criadas:**
 - `APM > Business Workflows` — lista com RED por funcionalidade (o menu
