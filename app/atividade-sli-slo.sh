@@ -168,9 +168,9 @@ echo "=================================================="
 echo " ACESSO - ATIVIDADE SLI/SLO"
 echo "=================================================="
 echo
-[ -n "$IP_PUB" ] && echo "  Para os alunos:   http://${IP_PUB}:${PORTA}"
-[ -n "$IP_LOC" ] && echo "  Na rede local:    http://${IP_LOC}:${PORTA}"
-echo "  Acessar :    http://localhost:${PORTA}"
+[ -n "$IP_PUB" ] && echo "  Acessar:   http://${IP_PUB}:${PORTA}"
+# [ -n "$IP_LOC" ] && echo "  Na rede local:    http://${IP_LOC}:${PORTA}"
+# echo "  Acessar :    http://localhost:${PORTA}"
 echo
 if [ -n "$IP_PUB" ]; then
     # echo "  Libere a porta $PORTA no Security Group, senao so' voce enxerga."
