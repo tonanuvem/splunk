@@ -416,14 +416,14 @@ echo "=================================================="
 echo " SCRIPT DE CARGA CRIADO"
 echo "=================================================="
 echo
-echo "~/carga_locust.sh"
-echo
-echo "  ~/carga_locust.sh                 todos os cenarios, 5 usuarios, 60s cada"
-echo "  ~/carga_locust.sh --usuarios 20   mais carga"
-echo "  ~/carga_locust.sh --duracao 20m   repete por 20 min e para sozinho"
-echo "  ~/carga_locust.sh --continuo      repete ate Ctrl+C"
-echo "  ~/carga_locust.sh --web           UI do locust em :8089"
-echo
-echo "=================================================="
+# echo "~/carga_locust.sh"
+# echo
+# echo "  ~/carga_locust.sh                 todos os cenarios, 5 usuarios, 60s cada"
+# echo "  ~/carga_locust.sh --usuarios 20   mais carga"
+# echo "  ~/carga_locust.sh --duracao 20m   repete por 20 min e para sozinho"
+# echo "  ~/carga_locust.sh --continuo      repete ate Ctrl+C"
+# echo "  ~/carga_locust.sh --web           UI do locust em :8089"
+# echo
+# echo "=================================================="
 echo "Executando"
 ~/carga_locust.sh "$@"
