@@ -74,7 +74,7 @@ perguntar_rum() {
     echo "Cole o token abaixo e tecle Enter."
     echo "Para seguir SEM RUM, apenas tecle Enter."
     echo
-    printf "  SPLUNK_RUM_TOKEN: "
+    printf "  FRONTEND SPLUNK_RUM_TOKEN: "
     read -r SPLUNK_RUM_TOKEN || true
 
     # Tolera colar "SPLUNK_RUM_TOKEN=xxx" inteiro, aspas e espacos.
