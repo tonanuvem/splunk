@@ -194,7 +194,7 @@ da entrega em `.xlsx`:
 **https://claude.ai/artifact/PnSnibUtNm4ESzXtir3vn4**
 
 O preenchimento fica salvo no navegador do grupo enquanto ele trabalha. A
-planilha sai com três abas — entregável, pontos de falha e SLIs. Fonte da
+planilha sai com duas abas — entregável e SLIs. Fonte da
 página: [app/index.html](../app/index.html).
 
 Para servir a página do próprio lab, sem depender do claude.ai:
