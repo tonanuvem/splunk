@@ -302,35 +302,19 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
 
 <section>
   <div class="step"><span class="num">3</span><h2>Valide o SLO derrubando a jornada</h2></div>
-  <p class="hint">Um SLO só é real quando você vê o orçamento queimar. Crie a
-  Business Transaction e o detector no Splunk, derrube a dependência e observe o
-  que acontece — no seu indicador e na tela do cliente.</p>
+  <p class="hint">Sem tráfego não há o que falhar. Suba a carga, deixe o
+  1º minuto passar limpo — é a linha de base —, derrube no 2º, observe e
+  restaure antes do fim.</p>
 
-  <div class="restore" style="border-color:var(--accent); background:var(--accent-soft)">
-    <b style="color:var(--accent)">1º</b>
-    <span><b>Suba a carga primeiro e deixe rodando.</b> Sem tráfego não há
-    requisição para falhar: o gráfico fica plano e você conclui que o SLI
-    não capturou nada.<br><br>
-    Use o cenário da <b>sua</b> jornada, não
-    <code style="font-family:'IBM Plex Mono',monospace">todos</code> — em
-    rodízio ela ficaria no ar 1 minuto a cada 5, e você poderia derrubar o
-    serviço justo quando ele nem está sendo chamado.<br>
-    <code style="font-family:'IBM Plex Mono',monospace" id="q-carga"></code>
-    <br><br>
-    São 5 minutos. Deixe o <b>1º passar limpo</b> — é a sua linha de base —,
-    derrube no 2º, observe, e restaure antes do fim.</span>
-  </div>
+  <label>1º terminal · carga da sua jornada, 5 min</label>
+  <p class="cmd" id="q-carga"></p>
 
-  <label>Num segundo terminal, derrube o serviço da sua jornada</label>
+  <label>2º terminal · derrube o serviço</label>
   <p class="cmd" id="q-stop"></p>
-  <p class="sub">Derrubar o serviço, e não o MongoDB, mantém o exercício
-  isolado: cada grupo quebra só o que é seu, e a falha aparece na hora.
-  Parar o banco derrubaria as seis jornadas da turma e ainda levaria
-  cerca de 30 s de timeout até o primeiro erro.</p>
 
   <div class="restore">
     <b>⟲</b>
-    <span>Ao terminar a observação, <b>restaure</b>:<br>
+    <span><b>Restaure</b> antes de o tempo acabar:<br>
     <code style="font-family:'IBM Plex Mono',monospace" id="q-start"></code></span>
   </div>
 
@@ -502,7 +486,7 @@ function pintarJornada(){
     el("g-srv").textContent = j.regra.servico;
     el("g-crit").textContent = j.regra.crit + "  \u2192  " + j.regra.val;
     el("g-nome").textContent = j.regra.nome;
-    el("q-carga").textContent = "bash ~/splunk/carga-locust.sh --cenario " + j.cenario + " --duracao 5m";
+    el("q-carga").innerHTML = '<span class="p">$ </span>bash ~/splunk/carga-locust.sh --cenario ' + j.cenario + ' --duracao 5m';
     el("q-stop").innerHTML = '<span class="p">$ </span>docker stop $(docker ps -q -f name=' + j.servico_alvo + ')';
     el("q-start").textContent = "docker start $(docker ps -aq -f name=" + j.servico_alvo + ")";
     const av = el("g-aviso");
@@ -512,7 +496,7 @@ function pintarJornada(){
   const refs = el("lat-refs");
   if (!j){
     if (refs) refs.innerHTML = "";
-    el("q-carga").textContent = "escolha a jornada no item 1";
+    el("q-carga").innerHTML = '<span class="p">$ </span>escolha a jornada no item 1';
     el("q-stop").innerHTML = '<span class="p">$ </span>escolha a jornada no item 1';
     el("q-start").textContent = "";
     return;
