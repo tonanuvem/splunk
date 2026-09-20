@@ -297,8 +297,12 @@ executar() {
     echo
     echo "$PROG ▶ $NOME  ·  $USUARIOS usuarios, $T"
 
-    local SAIDA
-    SAIDA=$(docker exec \
+    # O locust so' imprime no fim. Sem isso o terminal fica parado 60s por
+    # cenario e parece travado. Roda em segundo plano e mostra o andamento.
+    local SAIDA TMP PID DUR DECOR PCT
+    TMP=$(mktemp)
+
+    docker exec \
         -e VITE_ACCOUNTS_URL="$U_ACCOUNTS" \
         -e VITE_USERS_URL="$U_USERS" \
         -e VITE_ATM_URL="$U_ATM" \
@@ -311,7 +315,37 @@ executar() {
             -r 1 \
             --run-time "$T" \
             --only-summary \
-        2>&1)
+        >"$TMP" 2>&1 &
+    PID=$!
+
+    DUR=$(converter_tempo "$T")
+    case "$DUR" in ''|*[!0-9]*) DUR=60 ;; esac
+    [ "$DUR" -lt 1 ] && DUR=1
+
+    # Fora de um terminal (saida redirecionada, pipe, CI) o \r viraria lixo
+    # no arquivo; nesse caso apenas espera em silencio.
+    if [ -t 1 ]; then
+        # Barra em ASCII de proposito: o bash fatia ${var:0:n} por BYTES, e um
+        # bloco unicode tem 3 -- cortava no meio do caractere e desalinhava.
+        local INICIO_CEN CHEIO VAZIO N
+        INICIO_CEN=$(date +%s)
+        CHEIO="####################"
+        VAZIO="                    "
+        while kill -0 "$PID" 2>/dev/null; do
+            DECOR=$(( $(date +%s) - INICIO_CEN ))
+            PCT=$(( DECOR * 100 / DUR ))
+            [ "$PCT" -gt 100 ] && PCT=100
+            N=$(( PCT / 5 ))
+            printf '\r   [%s%s] %3d%%   %ss de %ss ' \
+                   "${CHEIO:0:$N}" "${VAZIO:0:$(( 20 - N ))}" "$PCT" "$DECOR" "$DUR"
+            sleep 2
+        done
+        printf '\r%-60s\r' " "
+    fi
+
+    wait "$PID" 2>/dev/null
+    SAIDA=$(cat "$TMP")
+    rm -f "$TMP"
 
     if [ "$DETALHE" = "true" ]; then
         echo "$SAIDA" | grep -vE "^\[|Starting|Shutting|Cleaning|spawn rate|All users"
