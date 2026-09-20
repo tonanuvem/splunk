@@ -324,10 +324,10 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
       <label for="q-capturou">O seu SLI capturou a falha?</label>
       <select id="q-capturou">
         <option value="">Selecione…</option>
-        <option>Sim, e o detector disparou</option>
-        <option>Sim, mas o detector não disparou</option>
-        <option>Parcialmente — só um dos SLIs reagiu</option>
-        <option>Não capturou</option>
+        <option>Sim — o indicador reagiu na hora</option>
+        <option>Sim, mas demorei a perceber</option>
+        <option>Parcialmente — só um dos três SLIs reagiu</option>
+        <option>Não reagiu — o indicador continuou saudável</option>
       </select>
     </div>
     <div class="field" style="flex:0 1 210px">
@@ -337,7 +337,7 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
   </div>
 
   <div class="field" style="margin-bottom:0">
-    <label for="q-cliente">O que o cliente viu antes de o alerta disparar?</label>
+    <label for="q-cliente">O que o cliente viu enquanto o serviço esteve fora?</label>
     <textarea id="q-cliente" placeholder="A diferença entre o que ele sofreu e o que você mediu é o que falta no seu SLI."></textarea>
   </div>
 </section>
@@ -608,8 +608,8 @@ function planilha(d){
     [],
     ["VALIDAÇÃO PRÁTICA - serviço derrubado: " + (j ? j.servico_alvo : "")],
     ["O SLI capturou a falha?", d["q-capturou"]],
-    ["Tempo até capturar (min)", d["q-tempo"]],
-    ["O que o cliente viu antes do alerta", d["q-cliente"]],
+    ["Tempo até o indicador reagir (min)", d["q-tempo"]],
+    ["O que o cliente viu com o serviço fora", d["q-cliente"]],
     [],
     ["Impacto no cliente", d["imp-cliente"]],
     ["Impacto no mercado", d["imp-mercado"]],
