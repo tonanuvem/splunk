@@ -172,6 +172,22 @@ cerca de 30 s de timeout do driver. Derrubando o serviço, a falha é imediata
 (conexão recusada) e fica contida no grupo. Parar o Mongo continua sendo boa
 demonstração para o instrutor fazer uma vez, com a turma toda olhando.
 
+**O que cada grupo vai ver — e não é o mesmo.**
+
+Nas jornadas que passam pelo BFF (2, 3, 4, 5), o `dashboard` continua no ar e
+registra a chamada que falhou: a **taxa de erro sobe**.
+
+Nas duas diretas (1 Autenticação e 6 Caixas), a carga chama o serviço sem
+intermediário. Com ele parado, a conexão é recusada **antes de existir span** —
+e como o locust não é instrumentado, ninguém registra a falha. No APM a taxa de
+erro fica em **0%** e o que despenca é o **volume**.
+
+Isso não é defeito do laboratório: é o melhor achado do exercício. Um SLI de
+disponibilidade baseado em taxa de erro mostraria a Autenticação **perfeitamente
+saudável** com a jornada 100% quebrada. Peça a esses grupos que descrevam o que
+faltou no indicador — a resposta é medir *volume esperado*, não só erro, ou
+medir do lado do cliente (RUM).
+
 Discuta: o seu SLI capturou a falha? Em quanto tempo? O que o **cliente** viu
 antes de o alerta disparar?
 

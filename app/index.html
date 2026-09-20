@@ -311,6 +311,7 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
 
   <label>2º terminal · derrube o serviço</label>
   <p class="cmd" id="q-stop"></p>
+  <p class="regra-a" id="q-sinal" hidden></p>
 
   <div class="restore">
     <b>⟲</b>
@@ -375,6 +376,7 @@ const JORNADAS = {
   auth:{nome:"Autenticação", tela:"/login", rota:"POST /api/users/auth (:8000)",
         cam:"navegador → customer-auth → mongodb:bank",
         lat:[["customer-auth","101 ms"],["mongodb","3 ms"]],
+        sinal:"o APM fica <b>em silêncio</b>, não em erro. A carga chama este serviço direto, então a conexão é recusada antes de existir span: a taxa de erro segue 0% e o que despenca é o <b>volume</b>. Registre isso — erro 0% com jornada quebrada é o achado do exercício.",
         servico_alvo:"customer-auth",
         cenario:"auth",
         regra:{crit:'"That contain"', val:"/api/users/auth", servico:"customer-auth",
@@ -384,6 +386,7 @@ const JORNADAS = {
   conta:{nome:"Abrir conta", tela:"/new-account", rota:"POST /account/create",
         cam:"dashboard → accounts → mongodb:bank",
         lat:[["dashboard","19 ms"],["accounts","5 ms"],["mongodb","3 ms"]],
+        sinal:"erro 500 em <code>dashboard</code>. O BFF continua no ar e registra a falha da chamada, então a taxa de erro sobe de verdade.",
         servico_alvo:"accounts",
         cenario:"account",
         regra:{crit:'"That contain"', val:"/account/create",
@@ -392,6 +395,7 @@ const JORNADAS = {
   transf:{nome:"Transferir entre contas", tela:"/transfer", rota:"POST /transaction/",
         cam:"dashboard → transactions → mongodb:bank",
         lat:[["dashboard","19 ms"],["transactions","3 ms"],["mongodb","3 ms"]],
+        sinal:"erro 500 em <code>dashboard</code>. O BFF continua no ar e registra a falha da chamada, então a taxa de erro sobe de verdade.",
         servico_alvo:"transactions",
         cenario:"transaction",
         regra:{crit:'"Specific endpoints"', val:"POST /transaction/",
@@ -401,6 +405,7 @@ const JORNADAS = {
   extrato:{nome:"Extrato da conta", tela:"/transactions", rota:"POST /transaction/history",
         cam:"dashboard → transactions → mongodb:bank",
         lat:[["dashboard","19 ms"],["transactions","3 ms"],["mongodb","3 ms"]],
+        sinal:"erro 500 em <code>dashboard</code>. O BFF continua no ar e registra a falha da chamada, então a taxa de erro sobe de verdade.",
         servico_alvo:"transactions",
         cenario:"transaction",
         regra:{crit:'"That contain"', val:"/transaction/history",
@@ -409,6 +414,7 @@ const JORNADAS = {
   emprestimo:{nome:"Solicitar empréstimo", tela:"/new-loan", rota:"POST /loan/",
         cam:"dashboard → loan → mongodb:bank",
         lat:[["dashboard","19 ms"],["loan","20 ms"],["mongodb","3 ms"]],
+        sinal:"erro 500 em <code>dashboard</code>. O BFF continua no ar e registra a falha da chamada, então a taxa de erro sobe de verdade.",
         servico_alvo:"loan",
         cenario:"loan",
         regra:{crit:'"Specific endpoints"', val:"POST /loan/",
@@ -418,6 +424,7 @@ const JORNADAS = {
   atm:{nome:"Localizar caixas eletrônicos", tela:"/find-atm", rota:"POST /api/atm/ (:8001)",
         cam:"navegador → atm-locator → mongodb:bank",
         lat:[["atm-locator","6 ms"],["mongodb","3 ms"]],
+        sinal:"o APM fica <b>em silêncio</b>, não em erro. A carga chama este serviço direto, então a conexão é recusada antes de existir span: a taxa de erro segue 0% e o que despenca é o <b>volume</b>. Registre isso — erro 0% com jornada quebrada é o achado do exercício.",
         servico_alvo:"atm-locator",
         cenario:"atm",
         regra:{crit:'"Specific endpoints"', val:"POST /api/atm/", servico:"atm-locator",
@@ -488,6 +495,8 @@ function pintarJornada(){
     el("g-nome").textContent = j.regra.nome;
     el("q-carga").innerHTML = '<span class="p">$ </span>bash ~/splunk/carga-locust.sh --cenario ' + j.cenario + ' --duracao 5m';
     el("q-stop").innerHTML = '<span class="p">$ </span>docker stop $(docker ps -q -f name=' + j.servico_alvo + ')';
+    el("q-sinal").hidden = false;
+    el("q-sinal").innerHTML = "<b>O que esperar:</b> " + j.sinal;
     el("q-start").textContent = "docker start $(docker ps -aq -f name=" + j.servico_alvo + ")";
     const av = el("g-aviso");
     av.hidden = !j.regra.aviso;
@@ -498,6 +507,7 @@ function pintarJornada(){
     if (refs) refs.innerHTML = "";
     el("q-carga").innerHTML = '<span class="p">$ </span>escolha a jornada no item 1';
     el("q-stop").innerHTML = '<span class="p">$ </span>escolha a jornada no item 1';
+    el("q-sinal").hidden = true;
     el("q-start").textContent = "";
     return;
   }
