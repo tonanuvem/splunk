@@ -168,45 +168,9 @@ textarea{resize:vertical; min-height:62px; line-height:1.5}
   .regra dl > dt:first-child, .ref dl > dt:first-child{margin-top:0}
 }
 
-/* ---------- carga e golden signals ---------- */
-.passo{
-  display:flex; align-items:baseline; gap:9px; margin:0 0 7px;
-  font-size:12px; letter-spacing:.07em; text-transform:uppercase;
-  color:var(--ink-faint); font-weight:600;
-}
-.passo span{
-  font-family:"IBM Plex Mono",monospace; color:var(--accent);
-  letter-spacing:0; text-transform:none;
-}
+/* ---------- textos auxiliares ---------- */
 .sub{color:var(--ink-soft); font-size:13.5px; margin:0 0 9px; max-width:64ch}
 .sub code{font-family:"IBM Plex Mono",monospace; font-size:12.5px; background:var(--surface-2); padding:1px 5px; border-radius:4px}
-
-.sinais{border:1px solid var(--line); border-radius:10px; padding:15px 16px; margin:0 0 20px; background:var(--surface-2)}
-.sinais-t{font-size:11.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; margin-bottom:10px}
-.sinais ul{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(2,1fr); gap:8px 18px}
-@media (max-width:620px){ .sinais ul{grid-template-columns:1fr} }
-.sinais li{font-size:13px; color:var(--ink-soft); display:flex; gap:8px; align-items:baseline}
-.sinais li b{color:var(--ink); font-weight:600; flex:none; min-width:74px}
-.sinais-p{
-  margin:13px 0 0; padding-top:12px; border-top:1px solid var(--line);
-  font-size:13px; color:var(--ink-soft); line-height:1.5;
-}
-.sinais-p strong{color:var(--ink)}
-
-/* ---------- pontos de falha ---------- */
-.falhas{display:flex; flex-direction:column; gap:11px}
-.falha{display:flex; gap:11px; align-items:flex-start}
-.falha-n{
-  flex:none; width:22px; height:22px; border-radius:50%; border:1px solid var(--line-strong);
-  color:var(--ink-faint); font-size:12px; display:grid; place-items:center; margin-top:7px;
-  font-family:"IBM Plex Mono",monospace;
-}
-.falha-f{flex:1 1 auto; display:flex; gap:10px; flex-wrap:wrap; min-width:0}
-.falha-f>div{flex:1 1 170px; min-width:0}
-/* O exemplo fica FORA do campo: dentro, o placeholder era cortado pela
-   largura da coluna e o aluno lia meia frase. */
-.ex{font-size:12px; color:var(--ink-faint); line-height:1.4; margin:5px 0 0}
-.ex b{color:var(--ink-soft); font-weight:600}
 
 /* ---------- SLI ---------- */
 .sli{border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:13px; background:var(--surface-2)}
@@ -326,66 +290,18 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
 </section>
 
 <section>
-  <div class="step"><span class="num">2</span><h2>Jornada e resultado de negócio</h2></div>
-  <p class="hint"><strong>Antes de abrir qualquer dashboard</strong>, faça a
-  jornada no navegador, de ponta a ponta. Depois faça de novo errado de
-  propósito — senha errada, valor maior que o saldo, campo vazio — e veja como
-  o sistema responde. Só então escreva, do ponto de vista de quem usa o banco,
-  não de quem opera o sistema.</p>
-  <div class="field"><label for="resultado">Qual é o resultado esperado da jornada?</label>
-    <textarea id="resultado" placeholder="O cliente consegue…"></textarea></div>
-  <div class="field" style="margin-bottom:0"><label for="sucesso">Qual evento representa sucesso?</label>
-    <textarea id="sucesso" placeholder="O que, concretamente, prova que deu certo?"></textarea></div>
-</section>
-
-<section>
-  <div class="step"><span class="num">3</span><h2>Três pontos de falha</h2></div>
-  <p class="hint">Sem tráfego o Service Map vem vazio, e você acaba
-  desenhando a arquitetura em vez de observá-la. Gere carga primeiro.</p>
-
-  <p class="passo">Primeiro · gere carga na sua jornada <span id="c-cen"></span></p>
-  <p class="cmd" id="c-cmd"><span class="p">$ </span>bash ~/splunk/carga-locust.sh --usuarios 10 --continuo</p>
-  <p class="sub">Cinco minutos bastam para o Service Map se preencher. Ela
-  se encerra sozinha — o passo 5 sobe a sua própria.</p>
-
-  <p class="passo" style="margin-top:20px">Depois · observe no APM</p>
-  <p class="sub">Abra <code>APM › Service Map</code>, filtre
-  <code>Environment: lab-fiap</code> na janela de <code>-15m</code> e siga a
-  cadeia da sua jornada. Confira num traço real em <code>APM › Traces</code>.
-  Repare se algum nó aparece <strong>tracejado</strong> — e descubra o que
-  você não consegue ver dentro dele.</p>
-
-  <div class="sinais">
-    <div class="sinais-t">Os quatro sinais que o APM te dá de graça</div>
-    <ul>
-      <li><b>Latência</b> quanto o cliente espera</li>
-      <li><b>Tráfego</b> quantas vezes a jornada roda</li>
-      <li><b>Erros</b> quantas vezes ela falha</li>
-      <li><b>Saturação</b> quanto falta para a dependência não aguentar</li>
-    </ul>
-    <p class="sinais-p">Use-os para responder <strong>“como eu detectaria”</strong>.
-    Mas repare em duas coisas. <strong>Saturação</strong> não vira SLI de
-    confiabilidade: ela avisa antes de doer no cliente, então é indicador de
-    capacidade. E <strong>nenhum dos quatro</strong> detecta uma jornada que
-    falhou sem erro nenhum — o segundo exemplo abaixo. Esse é o limite dos
-    Golden Signals, e a razão de existir um SLI de falha relevante.</p>
-  </div>
-
-  <p class="sub" style="margin-bottom:16px">Escolha agora os <strong>dois</strong>
-  pontos cuja falha mais dói. Não é o que tem mais chance de quebrar — é o que,
-  quebrando, <strong>impede o resultado de negócio</strong>. Um dos dois não
-  deveria ser um serviço.</p>
-  <div class="falhas" id="falhas"></div>
-</section>
-
-<section>
-  <div class="step"><span class="num">4</span><h2>SLIs, SLOs e justificativa</h2></div>
-  <p class="hint">Escreva cada SLI como frase mensurável, não como nome de métrica. O orçamento de erro é calculado enquanto você digita o alvo — use-o para checar se o número é sustentável.</p>
+  <div class="step"><span class="num">2</span><h2>SLIs, SLOs e justificativa</h2></div>
+  <p class="hint">Antes de definir os alvos, abra <code>APM › Service Map</code>
+  com <code>Environment: lab-fiap</code> na janela de <code>-15m</code> e veja a
+  cadeia da sua jornada — as latências medidas aparecem abaixo do campo de tempo.<br><br>
+  Escreva cada SLI como frase mensurável, não como nome de métrica. O orçamento
+  de erro é calculado enquanto você digita o alvo; use-o para checar se o número
+  é sustentável.</p>
   <div id="slis"></div>
 </section>
 
 <section>
-  <div class="step"><span class="num">5</span><h2>Valide o SLO derrubando a jornada</h2></div>
+  <div class="step"><span class="num">3</span><h2>Valide o SLO derrubando a jornada</h2></div>
   <p class="hint">Um SLO só é real quando você vê o orçamento queimar. Crie a
   Business Transaction e o detector no Splunk, derrube a dependência e observe o
   que acontece — no seu indicador e na tela do cliente.</p>
@@ -442,7 +358,7 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
 </section>
 
 <section>
-  <div class="step"><span class="num">6</span><h2>Impacto no cliente e no mercado</h2></div>
+  <div class="step"><span class="num">4</span><h2>Impacto no cliente e no mercado</h2></div>
   <p class="hint">Duas frases. É o que liga o número à consequência — e o que justifica o SLO diante de quem não é técnico.</p>
   <div class="field"><label for="imp-cliente">Quando este SLO é violado, o cliente…</label>
     <textarea id="imp-cliente"></textarea></div>
@@ -545,34 +461,6 @@ let jornada = "";
 // Um exemplo por linha, de propósito em naturezas diferentes: serviço,
 // dependência compartilhada e algo que não é serviço nenhum. Os três
 // doem no cliente; nenhum deles é "o que quebra com mais frequência".
-// Duas linhas, de naturezas deliberadamente opostas: uma dentro do
-// backend e uma fora dele. E' o contraste que sustenta a instrucao de
-// que um dos dois nao deveria ser um servico.
-const EX_FALHA = [
-  {a:"o serviço de domínio, ou o banco compartilhado, para de responder",
-   b:"a operação não conclui e ele não sabe se valeu",
-   c:"erro e latência da Business Transaction no APM"},
-  {a:"algo fora do backend: permissão negada, sessão vencida, tela quebrada",
-   b:"acredita que deu certo, e não deu",
-   c:"só o RUM enxerga; não há erro nenhum no servidor"}
-];
-
-el("falhas").innerHTML = [1,2].map(n => {
-  const x = EX_FALHA[n-1];
-  return `
-  <div class="falha">
-    <span class="falha-n">${n}</span>
-    <div class="falha-f">
-      <div><label for="f${n}a">Ponto de falha</label>
-        <input type="text" id="f${n}a"><p class="ex"><b>ex.:</b> ${x.a}</p></div>
-      <div><label for="f${n}b">O que o cliente vê</label>
-        <input type="text" id="f${n}b"><p class="ex"><b>ex.:</b> ${x.b}</p></div>
-      <div><label for="f${n}c">Como eu detectaria</label>
-        <input type="text" id="f${n}c"><p class="ex"><b>ex.:</b> ${x.c}</p></div>
-    </div>
-  </div>`;
-}).join("");
-
 /* ---------- monta SLIs ---------- */
 el("slis").innerHTML = SLIS.map(s => `
   <div class="sli">
@@ -614,12 +502,9 @@ function pintarJornada(){
     el("g-srv").textContent = j.regra.servico;
     el("g-crit").textContent = j.regra.crit + "  \u2192  " + j.regra.val;
     el("g-nome").textContent = j.regra.nome;
-    el("c-cen").textContent = "(--cenario " + j.cenario + ")";
     el("q-carga").textContent = "bash ~/splunk/carga-locust.sh --cenario " + j.cenario + " --duracao 5m";
     el("q-stop").innerHTML = '<span class="p">$ </span>docker stop $(docker ps -q -f name=' + j.servico_alvo + ')';
     el("q-start").textContent = "docker start $(docker ps -aq -f name=" + j.servico_alvo + ")";
-    el("c-cmd").innerHTML = '<span class="p">$ </span>bash ~/splunk/carga-locust.sh ' +
-      '--cenario ' + j.cenario + ' --usuarios 10 --duracao 5m';
     const av = el("g-aviso");
     av.hidden = !j.regra.aviso;
     av.innerHTML = j.regra.aviso ? "<b>Atenção:</b> " + j.regra.aviso : "";
@@ -627,8 +512,6 @@ function pintarJornada(){
   const refs = el("lat-refs");
   if (!j){
     if (refs) refs.innerHTML = "";
-    el("c-cen").textContent = "";
-    el("c-cmd").innerHTML = '<span class="p">$ </span>bash ~/splunk/carga-locust.sh --usuarios 10 --continuo';
     el("q-carga").textContent = "escolha a jornada no item 1";
     el("q-stop").innerHTML = '<span class="p">$ </span>escolha a jornada no item 1';
     el("q-start").textContent = "";
@@ -668,14 +551,13 @@ function pintarOrcamento(s){
 SLIS.forEach(s => el(s.id + "-alvo").addEventListener("input", () => pintarOrcamento(s)));
 
 /* ---------- campos, persistência, progresso ---------- */
-const CAMPOS = ["integrantes","resultado","sucesso","imp-cliente","imp-mercado",
+const CAMPOS = ["integrantes","imp-cliente","imp-mercado",
   "q-capturou","q-tempo","q-cliente"]
-  .concat([1,2].flatMap(n => [`f${n}a`,`f${n}b`,`f${n}c`]))
   .concat(SLIS.flatMap(s => [`${s.id}-txt`,`${s.id}-alvo`,`${s.id}-just`].concat(s.ms?[`${s.id}-ms`]:[])));
 
 // 18 itens contam para o progresso: os do entregável, não cada caixa de texto.
-const CONTAM = ["integrantes","resultado","sucesso","imp-cliente","imp-mercado",
-  "f1a","f2a","q-capturou","q-cliente"]
+const CONTAM = ["integrantes","imp-cliente","imp-mercado",
+  "q-capturou","q-cliente"]
   .concat(SLIS.flatMap(s => [`${s.id}-txt`,`${s.id}-alvo`,`${s.id}-just`]));
 
 function medir(){
@@ -730,10 +612,7 @@ function planilha(d){
     ["Entrada no BFF (APM)", j ? j.rota : ""],
     ["Caminho no Service Map", j ? j.cam : ""],
     [],
-    ["Resultado esperado da jornada", d.resultado],
-    ["Evento que representa sucesso", d.sucesso],
-    [],
-    ["VALIDAÇÃO PRÁTICA (docker stop fiap-mongodb)"],
+    ["VALIDAÇÃO PRÁTICA - serviço derrubado: " + (j ? j.servico_alvo : "")],
     ["O SLI capturou a falha?", d["q-capturou"]],
     ["Tempo até capturar (min)", d["q-tempo"]],
     ["O que o cliente viu antes do alerta", d["q-cliente"]],
@@ -743,9 +622,6 @@ function planilha(d){
     [],
     ["Gerado em", new Date().toLocaleString("pt-BR")]
   ];
-
-  const falhas = [["#","Ponto de falha","O que o cliente vê","Como eu detectaria"]]
-    .concat([1,2].map(n => [n, d[`f${n}a`], d[`f${n}b`], d[`f${n}c`]]));
 
   const slis = [["Tipo","Enunciado do SLI","Alvo do SLO (%)","Tempo limite (ms)","Orçamento de erro / 30 dias","Justificativa"]]
     .concat(SLIS.map(s => {
@@ -757,10 +633,8 @@ function planilha(d){
 
   const wb = XLSX.utils.book_new();
   const a1 = XLSX.utils.aoa_to_sheet(entregavel); a1["!cols"] = [{wch:28},{wch:76}];
-  const a2 = XLSX.utils.aoa_to_sheet(falhas);     a2["!cols"] = [{wch:4},{wch:34},{wch:38},{wch:38}];
   const a3 = XLSX.utils.aoa_to_sheet(slis);       a3["!cols"] = [{wch:18},{wch:48},{wch:15},{wch:16},{wch:26},{wch:56}];
   XLSX.utils.book_append_sheet(wb, a1, "Entregável");
-  XLSX.utils.book_append_sheet(wb, a2, "Pontos de falha");
   XLSX.utils.book_append_sheet(wb, a3, "SLIs e SLOs");
   return wb;
 }

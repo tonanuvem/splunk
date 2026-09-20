@@ -212,8 +212,7 @@ pelo nginx é o download normal do navegador — a página detecta onde está.
 | Item | |
 |---|---|
 | Integrantes do grupo | |
-| Jornada e resultado de negócio | |
-| 2 pontos de falha do Service Map | |
+| Jornada de negócio | |
 | SLI de disponibilidade | |
 | SLI de latência | |
 | SLI de falha relevante | |
