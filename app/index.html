@@ -168,6 +168,30 @@ textarea{resize:vertical; min-height:62px; line-height:1.5}
   .regra dl > dt:first-child, .ref dl > dt:first-child{margin-top:0}
 }
 
+/* ---------- etapas numeradas dentro de uma secao ---------- */
+/* Regra no topo em vez de caixa: separa sem criar um segundo nivel de
+   cartao dentro do cartao da secao. */
+.etapa{padding-top:20px; margin-top:20px; border-top:1px solid var(--line)}
+.etapa:first-of-type{padding-top:0; margin-top:4px; border-top:none}
+.etapa-t{
+  display:flex; align-items:center; gap:9px; margin:0 0 11px;
+  font-size:12px; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--ink-soft); font-weight:600;
+}
+.etapa-n{
+  flex:none; width:20px; height:20px; border-radius:50%;
+  background:var(--accent); color:var(--on-accent);
+  font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:500;
+  display:grid; place-items:center; letter-spacing:0;
+}
+.etapa-t code{
+  font-family:"IBM Plex Mono",monospace; font-size:11.5px; text-transform:none;
+  letter-spacing:0; background:var(--surface-2); padding:1px 5px; border-radius:4px;
+}
+.etapa .cmd{margin-bottom:0}
+.etapa .sub{margin:9px 0 0}
+.etapa .regra{margin-bottom:0}
+
 /* ---------- textos auxiliares ---------- */
 .sub{color:var(--ink-soft); font-size:13.5px; margin:0 0 9px; max-width:64ch}
 .sub code{font-family:"IBM Plex Mono",monospace; font-size:12.5px; background:var(--surface-2); padding:1px 5px; border-radius:4px}
@@ -304,43 +328,51 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
   <div class="step"><span class="num">3</span><h2>Valide o SLO derrubando a jornada</h2></div>
   <p class="hint">Faça na ordem. Cada passo depende do anterior.</p>
 
-  <label>1º · crie o SLO em: <code>MENU › Alerts › Service level objectives › Create SLOs</code></label>
-  <div class="regra">
-    <dl>
-      <dt>Metric type</dt><dd>Service &amp; endpoint</dd>
-      <dt>Service and endpoint</dt><dd id="s-alvo"></dd>
-      <dt>Indicator type</dt><dd>Request success</dd>
-      <dt>Target (%)</dt><dd>99.99</dd>
-    </dl>
-    <p class="regra-a"><b>Por que 99,99:</b> deixa cerca de 4 minutos de
-    orçamento em 30 dias. Com 99% seriam 7 h, e a queda de 5 minutos não
-    apareceria no painel.</p>
-  </div>
-
-  <label>2º · derrube o serviço da sua jornada</label>
-  <p class="cmd" id="q-stop"></p>
-  <p class="regra-a" id="q-sinal" hidden></p>
-
-  <label>3º · gere carga em todos os cenários, 5 min</label>
-  <p class="cmd"><span class="p">$ </span>bash ~/splunk/carga-locust.sh --duracao 5m</p>
-  <p class="sub">Todos os cenários, não só o seu: o Service Map fica completo
-  e só o seu nó aparece em vermelho.</p>
-
-  <label>4º · veja a tela que o cliente vê</label>
-  <div class="row" style="align-items:flex-end">
-    <div class="field" style="flex:0 1 190px; margin-bottom:0">
-      <label for="ip-lab">IP do lab</label>
-      <input type="text" id="ip-lab" placeholder="54.0.0.0">
+  <div class="etapa">
+    <p class="etapa-t"><span class="etapa-n">1</span> Crie o SLO em <code>MENU › Alerts › Service level objectives › Create SLOs</code></p>
+    <div class="regra">
+      <dl>
+        <dt>Metric type</dt><dd>Service &amp; endpoint</dd>
+        <dt>Service and endpoint</dt><dd id="s-alvo"></dd>
+        <dt>Indicator type</dt><dd>Request success</dd>
+        <dt>Target (%)</dt><dd>99.99</dd>
+      </dl>
+      <p class="regra-a"><b>Por que 99,99:</b> deixa cerca de 4 minutos de
+      orçamento em 30 dias. Com 99% seriam 7 h, e a queda de 5 minutos não
+      apareceria no painel.</p>
     </div>
-    <a class="btn" id="abrir-app" href="#" target="_blank" rel="noopener">Abrir a tela ↗</a>
   </div>
-  <p class="sub" style="margin-top:9px">
-    <code id="url-app">informe o IP e escolha a jornada</code>
-  </p>
 
-  <label>5º · volte ao SLO e veja o impacto</label>
-  <p class="sub"><code>Alerts › SLOs</code> → o seu SLO: quanto do orçamento
-  foi consumido e qual a <em>burn rate</em>.</p>
+  <div class="etapa">
+    <p class="etapa-t"><span class="etapa-n">2</span> Derrube o serviço da sua jornada</p>
+    <p class="cmd" id="q-stop"></p>
+    <p class="regra-a" id="q-sinal" hidden></p>
+  </div>
+
+  <div class="etapa">
+    <p class="etapa-t"><span class="etapa-n">3</span> Gere carga em todos os cenários, 5 min</p>
+    <p class="cmd"><span class="p">$ </span>bash ~/splunk/carga-locust.sh --duracao 5m</p>
+    <p class="sub">Todos os cenários, não só o seu: o Service Map fica completo
+    e só o seu nó aparece em vermelho.</p>
+  </div>
+
+  <div class="etapa">
+    <p class="etapa-t"><span class="etapa-n">4</span> Veja a tela que o cliente vê</p>
+    <div class="row" style="align-items:flex-end">
+      <div class="field" style="flex:0 1 190px; margin-bottom:0">
+        <label for="ip-lab">IP do lab</label>
+        <input type="text" id="ip-lab" placeholder="54.0.0.0">
+      </div>
+      <a class="btn" id="abrir-app" href="#" target="_blank" rel="noopener">Abrir a tela ↗</a>
+    </div>
+    <p class="sub"><code id="url-app">informe o IP e escolha a jornada</code></p>
+  </div>
+
+  <div class="etapa">
+    <p class="etapa-t"><span class="etapa-n">5</span> Volte ao SLO e veja o impacto</p>
+    <p class="sub" style="margin-top:0"><code>Alerts › SLOs</code> → o seu SLO:
+    quanto do orçamento foi consumido e qual a <em>burn rate</em>.</p>
+  </div>
 
   <div class="restore">
     <b>⟲</b>
