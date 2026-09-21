@@ -303,20 +303,50 @@ footer{margin-top:26px; padding-top:16px; border-top:1px solid var(--line); font
 
 <section>
   <div class="step"><span class="num">3</span><h2>Valide o SLO derrubando a jornada</h2></div>
-  <p class="hint">Sem tráfego não há o que falhar. Suba a carga, deixe o
-  1º minuto passar limpo — é a linha de base —, derrube no 2º, observe e
-  restaure antes do fim.</p>
+  <p class="hint">Faça na ordem. Cada passo depende do anterior.</p>
 
-  <label>1º terminal · carga da sua jornada, 5 min</label>
-  <p class="cmd" id="q-carga"></p>
+  <label>1º · crie o SLO em <code>Alerts › SLOs</code></label>
+  <div class="regra">
+    <dl>
+      <dt>Metric type</dt><dd>Service &amp; endpoint</dd>
+      <dt>Service and endpoint</dt><dd id="s-alvo"></dd>
+      <dt>Indicator type</dt><dd>Request success</dd>
+      <dt>Target (%)</dt><dd>99.99</dd>
+      <dt>Compliance window</dt><dd>a menor que o seletor oferecer</dd>
+    </dl>
+    <p class="regra-a"><b>Por que 99,99:</b> deixa cerca de 4 minutos de
+    orçamento em 30 dias. Com 99% seriam 7 h, e a queda de 5 minutos não
+    apareceria no painel.</p>
+  </div>
 
-  <label>2º terminal · derrube o serviço</label>
+  <label>2º · derrube o serviço da sua jornada</label>
   <p class="cmd" id="q-stop"></p>
   <p class="regra-a" id="q-sinal" hidden></p>
 
+  <label>3º · gere carga em todos os cenários, 5 min</label>
+  <p class="cmd"><span class="p">$ </span>bash ~/splunk/carga-locust.sh --duracao 5m</p>
+  <p class="sub">Todos os cenários, não só o seu: o Service Map fica completo
+  e só o seu nó aparece em vermelho.</p>
+
+  <label>4º · veja a tela que o cliente vê</label>
+  <div class="row" style="align-items:flex-end">
+    <div class="field" style="flex:0 1 190px; margin-bottom:0">
+      <label for="ip-lab">IP do lab</label>
+      <input type="text" id="ip-lab" placeholder="54.0.0.0">
+    </div>
+    <a class="btn" id="abrir-app" href="#" target="_blank" rel="noopener">Abrir a tela ↗</a>
+  </div>
+  <p class="sub" style="margin-top:9px">
+    <code id="url-app">informe o IP e escolha a jornada</code>
+  </p>
+
+  <label>5º · volte ao SLO e veja o impacto</label>
+  <p class="sub"><code>Alerts › SLOs</code> → o seu SLO: quanto do orçamento
+  foi consumido e qual a <em>burn rate</em>.</p>
+
   <div class="restore">
     <b>⟲</b>
-    <span><b>Restaure</b> antes de o tempo acabar:<br>
+    <span><b>Restaure</b> ao terminar:<br>
     <code style="font-family:'IBM Plex Mono',monospace" id="q-start"></code></span>
   </div>
 
@@ -377,7 +407,8 @@ const JORNADAS = {
   auth:{nome:"Autenticação", tela:"/login", rota:"POST /api/users/auth (:8000)",
         cam:"navegador → customer-auth → mongodb:bank",
         lat:[["customer-auth","101 ms"],["mongodb","3 ms"]],
-        sinal:"o APM fica <b>em silêncio</b>, não em erro. A carga chama este serviço direto, então a conexão é recusada antes de existir span: a taxa de erro segue 0% e o que despenca é o <b>volume</b>.<br>Onde ver: <code>APM › Service Map</code> (o nó fica sem tráfego) e <code>APM › Services</code> → seu serviço → <b>Requests</b>, que vai a zero com <b>Error Rate</b> em 0. Erro 0% com jornada quebrada é o achado do exercício.",
+        slo_svc:"customer-auth", slo_ep:"POST /api/users/auth",
+        sinal:"o APM fica <b>em silêncio</b>, não em erro. A carga chama este serviço direto, então a conexão é recusada antes de existir span: a taxa de erro segue 0% e o que despenca é o <b>volume</b>.<br>Onde ver: <code>APM › Service Map</code> (o nó fica sem tráfego) e <code>APM › Services</code> → seu serviço → <b>Requests</b>, que vai a zero com <b>Error Rate</b> em 0. O <b>SLO também continua em 100%</b>: ele mede o serviço morto, que não reporta nada. Erro 0% com jornada quebrada é o achado do exercício.",
         servico_alvo:"customer-auth",
         cenario:"auth",
         regra:{crit:'"That contain"', val:"/api/users/auth", servico:"customer-auth",
@@ -387,6 +418,7 @@ const JORNADAS = {
   conta:{nome:"Abrir conta", tela:"/new-account", rota:"POST /account/create",
         cam:"dashboard → accounts → mongodb:bank",
         lat:[["dashboard","19 ms"],["accounts","5 ms"],["mongodb","3 ms"]],
+        slo_svc:"dashboard", slo_ep:"POST /account/create",
         sinal:"erro 500 em <code>dashboard</code>. O BFF continua no ar e registra a falha da chamada, então a taxa de erro sobe de verdade.<br>Onde ver: <code>APM › Service Map</code> — o nó <code>dashboard</code> fica vermelho e surge uma aresta para um serviço inferido (<code>localhost:&lt;porta&gt;</code>), que é o serviço morto. O número está em <code>APM › Services › dashboard</code> → <b>Error Rate</b>.<br>Em <code>Business Transactions</code> confira o <b>nome</b> da sua regra: se você mudou a Default para 3 segmentos, o nome antigo parou de receber dados.",
         servico_alvo:"accounts",
         cenario:"account",
@@ -396,6 +428,7 @@ const JORNADAS = {
   transf:{nome:"Transferir entre contas", tela:"/transfer", rota:"POST /transaction/",
         cam:"dashboard → transactions → mongodb:bank",
         lat:[["dashboard","19 ms"],["transactions","3 ms"],["mongodb","3 ms"]],
+        slo_svc:"dashboard", slo_ep:"POST /transaction/",
         sinal:"erro 500 em <code>dashboard</code>. O BFF continua no ar e registra a falha da chamada, então a taxa de erro sobe de verdade.<br>Onde ver: <code>APM › Service Map</code> — o nó <code>dashboard</code> fica vermelho e surge uma aresta para um serviço inferido (<code>localhost:&lt;porta&gt;</code>), que é o serviço morto. O número está em <code>APM › Services › dashboard</code> → <b>Error Rate</b>.<br>Em <code>Business Transactions</code> confira o <b>nome</b> da sua regra: se você mudou a Default para 3 segmentos, o nome antigo parou de receber dados.",
         servico_alvo:"transactions",
         cenario:"transaction",
@@ -406,6 +439,7 @@ const JORNADAS = {
   extrato:{nome:"Extrato da conta", tela:"/transactions", rota:"POST /transaction/history",
         cam:"dashboard → transactions → mongodb:bank",
         lat:[["dashboard","19 ms"],["transactions","3 ms"],["mongodb","3 ms"]],
+        slo_svc:"dashboard", slo_ep:"POST /transaction/history",
         sinal:"erro 500 em <code>dashboard</code>. O BFF continua no ar e registra a falha da chamada, então a taxa de erro sobe de verdade.<br>Onde ver: <code>APM › Service Map</code> — o nó <code>dashboard</code> fica vermelho e surge uma aresta para um serviço inferido (<code>localhost:&lt;porta&gt;</code>), que é o serviço morto. O número está em <code>APM › Services › dashboard</code> → <b>Error Rate</b>.<br>Em <code>Business Transactions</code> confira o <b>nome</b> da sua regra: se você mudou a Default para 3 segmentos, o nome antigo parou de receber dados.",
         servico_alvo:"transactions",
         cenario:"transaction",
@@ -415,6 +449,7 @@ const JORNADAS = {
   emprestimo:{nome:"Solicitar empréstimo", tela:"/new-loan", rota:"POST /loan/",
         cam:"dashboard → loan → mongodb:bank",
         lat:[["dashboard","19 ms"],["loan","20 ms"],["mongodb","3 ms"]],
+        slo_svc:"dashboard", slo_ep:"POST /loan/",
         sinal:"erro 500 em <code>dashboard</code>. O BFF continua no ar e registra a falha da chamada, então a taxa de erro sobe de verdade.<br>Onde ver: <code>APM › Service Map</code> — o nó <code>dashboard</code> fica vermelho e surge uma aresta para um serviço inferido (<code>localhost:&lt;porta&gt;</code>), que é o serviço morto. O número está em <code>APM › Services › dashboard</code> → <b>Error Rate</b>.<br>Em <code>Business Transactions</code> confira o <b>nome</b> da sua regra: se você mudou a Default para 3 segmentos, o nome antigo parou de receber dados.",
         servico_alvo:"loan",
         cenario:"loan",
@@ -425,7 +460,8 @@ const JORNADAS = {
   atm:{nome:"Localizar caixas eletrônicos", tela:"/find-atm", rota:"POST /api/atm/ (:8001)",
         cam:"navegador → atm-locator → mongodb:bank",
         lat:[["atm-locator","6 ms"],["mongodb","3 ms"]],
-        sinal:"o APM fica <b>em silêncio</b>, não em erro. A carga chama este serviço direto, então a conexão é recusada antes de existir span: a taxa de erro segue 0% e o que despenca é o <b>volume</b>.<br>Onde ver: <code>APM › Service Map</code> (o nó fica sem tráfego) e <code>APM › Services</code> → seu serviço → <b>Requests</b>, que vai a zero com <b>Error Rate</b> em 0. Erro 0% com jornada quebrada é o achado do exercício.",
+        slo_svc:"atm-locator", slo_ep:"POST /api/atm/",
+        sinal:"o APM fica <b>em silêncio</b>, não em erro. A carga chama este serviço direto, então a conexão é recusada antes de existir span: a taxa de erro segue 0% e o que despenca é o <b>volume</b>.<br>Onde ver: <code>APM › Service Map</code> (o nó fica sem tráfego) e <code>APM › Services</code> → seu serviço → <b>Requests</b>, que vai a zero com <b>Error Rate</b> em 0. O <b>SLO também continua em 100%</b>: ele mede o serviço morto, que não reporta nada. Erro 0% com jornada quebrada é o achado do exercício.",
         servico_alvo:"atm-locator",
         cenario:"atm",
         regra:{crit:'"Specific endpoints"', val:"POST /api/atm/", servico:"atm-locator",
@@ -494,8 +530,9 @@ function pintarJornada(){
     el("g-srv").textContent = j.regra.servico;
     el("g-crit").textContent = j.regra.crit + "  \u2192  " + j.regra.val;
     el("g-nome").textContent = j.regra.nome;
-    el("q-carga").innerHTML = '<span class="p">$ </span>bash ~/splunk/carga-locust.sh --cenario ' + j.cenario + ' --duracao 5m';
     el("q-stop").innerHTML = '<span class="p">$ </span>docker stop $(docker ps -q -f name=' + j.servico_alvo + ')';
+    el("s-alvo").textContent = j.slo_svc + "   AND   " + j.slo_ep;
+    montarLink();
     el("q-sinal").hidden = false;
     el("q-sinal").innerHTML = "<b>O que esperar:</b> " + j.sinal;
     el("q-start").textContent = "docker start $(docker ps -aq -f name=" + j.servico_alvo + ")";
@@ -506,8 +543,9 @@ function pintarJornada(){
   const refs = el("lat-refs");
   if (!j){
     if (refs) refs.innerHTML = "";
-    el("q-carga").innerHTML = '<span class="p">$ </span>escolha a jornada no item 1';
     el("q-stop").innerHTML = '<span class="p">$ </span>escolha a jornada no item 1';
+    el("s-alvo").textContent = "escolha a jornada no item 1";
+    montarLink();
     el("q-sinal").hidden = true;
     el("q-start").textContent = "";
     return;
@@ -523,6 +561,29 @@ el("chips").addEventListener("click", e => {
   jornada = b.dataset.j === jornada ? "" : b.dataset.j;
   pintarJornada(); salvar(); medir();
 });
+
+/* ---------- link para a tela da aplicação ---------- */
+
+// A pagina roda no claude.ai ou servida pelo proprio lab. No segundo caso o
+// IP ja' esta' em location.hostname; no primeiro nao ha' como adivinhar, e o
+// aluno digita. A URL fica visivel para copiar caso o navegador bloqueie o
+// popup do artifact.
+function montarLink(){
+  const campo = el("ip-lab"), link = el("abrir-app"), url = el("url-app");
+  if (!campo || !link || !url) return;
+  const ip = campo.value.trim();
+  const j = JORNADAS[jornada];
+  if (!ip || !j){
+    link.removeAttribute("href");
+    link.style.opacity = ".45";
+    url.textContent = !j ? "escolha a jornada no item 1" : "informe o IP do lab";
+    return;
+  }
+  const destino = "http://" + ip + ":3000" + j.tela;
+  link.href = destino;
+  link.style.opacity = "1";
+  url.textContent = destino;
+}
 
 /* ---------- orçamento de erro ---------- */
 function orcamento(pct){
@@ -547,7 +608,7 @@ SLIS.forEach(s => el(s.id + "-alvo").addEventListener("input", () => pintarOrcam
 
 /* ---------- campos, persistência, progresso ---------- */
 const CAMPOS = ["integrantes","imp-cliente","imp-mercado",
-  "q-capturou","q-tempo","q-cliente"]
+  "q-capturou","q-tempo","q-cliente","ip-lab"]
   .concat(SLIS.flatMap(s => [`${s.id}-txt`,`${s.id}-alvo`,`${s.id}-just`].concat(s.ms?[`${s.id}-ms`]:[])));
 
 // 18 itens contam para o progresso: os do entregável, não cada caixa de texto.
@@ -718,6 +779,13 @@ el("exportar2").addEventListener("click", exportar);
 
 /* ---------- início ---------- */
 carregar();
+
+// Servida pelo lab, o proprio endereco ja' e' o IP procurado.
+if (el("ip-lab") && !el("ip-lab").value && /^(\d{1,3}\.){3}\d{1,3}$|^localhost$/.test(location.hostname)){
+  el("ip-lab").value = location.hostname;
+}
+el("ip-lab")?.addEventListener("input", montarLink);
+
 pintarJornada();
 SLIS.forEach(pintarOrcamento);
 medir();

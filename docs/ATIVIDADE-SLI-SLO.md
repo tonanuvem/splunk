@@ -130,6 +130,15 @@ proteger esse número? Se não, o SLO está apertado demais.
 
 O SLO só é real quando você vê o orçamento queimar.
 
+A página conduz cinco passos em sequência: criar o SLO, derrubar o serviço,
+gerar carga, ver a tela do cliente e voltar ao SLO. O alvo sugerido é
+**99,99%**, que deixa cerca de 4 minutos de orçamento em 30 dias — com 99%
+seriam 7 horas, e a queda de 5 minutos não apareceria no painel.
+
+Nas duas jornadas diretas (1 e 6) o SLO fica em **100%** mesmo com a jornada
+quebrada: ele mede o serviço parado, que não reporta nada. É o achado, não um
+defeito.
+
 **Pré-requisito que decide o passo:** a carga precisa estar rodando *antes* de
 derrubar. Sem tráfego não há requisição para falhar — o gráfico fica plano e o
 grupo conclui que o SLI não capturou nada.
