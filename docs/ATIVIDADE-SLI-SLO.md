@@ -197,6 +197,44 @@ saudável** com a jornada 100% quebrada. Peça a esses grupos que descrevam o qu
 faltou no indicador — a resposta é medir *volume esperado*, não só erro, ou
 medir do lado do cliente (RUM).
 
+### O serviço morto não reporta a própria morte
+
+Derrubando `accounts`, o Service Map mostra os erros num nó novo e tracejado
+chamado **`localhost:50051`** — e o nó `accounts` continua ali, sem erro nenhum.
+Todo grupo vai perguntar por quê. A resposta é o melhor fecho da atividade.
+
+**A identidade de um serviço vem do próprio processo.** É o agente OTel dentro
+do `accounts` que carimba `service.name=accounts` em cada span. Sem processo,
+não há span de servidor — e não há nome.
+
+O que sobra é o que o **chamador** registrou. A instrumentação do `requests` no
+`dashboard` cria o span de cliente antes de tentar a conexão e o marca como erro
+quando ela é recusada. Nesse span só existe o endereço do destino: `localhost`
+e porta `50051`. O Splunk infere um serviço a partir disso. O endereço é a única
+impressão digital que restou — e é mesmo a porta do `accounts`.
+
+O nó `accounts` segue no mapa, sem erros, por causa do tráfego **anterior** à
+queda, ainda dentro da janela. Aquelas requisições ele serviu com sucesso.
+
+**Por que isso importa:** um alerta ou painel filtrado por `service = accounts`
+**não vê a queda do accounts**. Quem monitora apenas o serviço que lhe interessa
+fica cego exatamente quando ele morre.
+
+É o terceiro rosto do mesmo tema:
+
+| O que parece | O que é |
+|---|---|
+| HTTP 200 | transferência recusada por saldo |
+| Erro 0% nas jornadas diretas | jornada quebrada, ninguém registrou |
+| `accounts` sem erros | serviço morto |
+
+**Como se resolveria.** A convenção do OpenTelemetry tem o atributo
+`peer.service`: o chamador declara o nome lógico do destino no span de cliente.
+Preenchido, o nó inferido apareceria como `accounts` mesmo morto, e o alerta por
+serviço voltaria a funcionar. Exige tocar na instrumentação do `dashboard`,
+então fica fora do lab — mas é a resposta certa para "como você consertaria isso
+em produção", e uma boa pergunta para encerrar.
+
 Discuta: o seu SLI capturou a falha? Em quanto tempo? O que o **cliente** viu
 antes de o alerta disparar?
 
