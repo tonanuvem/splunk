@@ -197,6 +197,37 @@ saudável** com a jornada 100% quebrada. Peça a esses grupos que descrevam o qu
 faltou no indicador — a resposta é medir *volume esperado*, não só erro, ou
 medir do lado do cliente (RUM).
 
+### O que o cliente vê: `SyntaxError: JSON.parse`
+
+Com o serviço fora, abrir a tela da jornada e submeter o formulário produz esta
+mensagem no canto da tela:
+
+```
+SyntaxError: JSON.parse: unexpected character at line 1 column 1 of the JSON data
+```
+
+É o desfecho esperado, e a cadeia vale ser reconstruída com a turma:
+
+1. O `accounts` está parado.
+2. O `dashboard` levanta exceção na chamada — não há `@app.errorhandler` nele.
+3. O Flask devolve o **HTML padrão de erro 500**, não JSON.
+4. O frontend tenta `JSON.parse` naquele `<!doctype html>` e quebra no `<`.
+
+**É a resposta do campo "o que o cliente viu enquanto o serviço esteve fora".**
+Repare no que ele *não* viu: nenhuma menção a indisponibilidade, nenhuma
+orientação para tentar de novo, nenhum canal de suporte. Um erro de sintaxe de
+JSON, que não significa nada para quem quer abrir uma conta.
+
+Do lado do servidor a falha foi registrada com precisão — 500, span de erro,
+SLO queimando. Do lado do cliente, ela virou ruído. **Essa distância é o
+assunto da atividade**, e aqui ela aparece de forma literal: a mesma falha,
+medida com rigor no backend e ilegível na tela.
+
+Fechamento possível: *o que o aplicativo deveria ter feito?* Tratar o erro e
+mostrar "serviço temporariamente indisponível, tente em instantes" — o que
+também tornaria a falha visível no RUM como erro de negócio, e não como
+`SyntaxError`.
+
 ### O serviço morto não reporta a própria morte
 
 Derrubando `accounts`, o Service Map mostra os erros num nó novo e tracejado
