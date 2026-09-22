@@ -225,9 +225,21 @@ textarea{resize:vertical; min-height:62px; line-height:1.5}
 .cmd{
   font-family:"IBM Plex Mono",monospace; font-size:13px;
   background:var(--ink); color:var(--ground); border-radius:8px;
-  padding:12px 14px; margin:0 0 6px; overflow-x:auto; white-space:pre;
+  padding:12px 58px 12px 14px; margin:0 0 6px; overflow-x:auto; white-space:pre;
+  position:relative;
 }
 .cmd .p{color:var(--ink-faint)}
+/* Botao de copiar. O padding-right acima reserva o espaco dele, para o
+   comando nao correr por baixo. */
+.btn-copiar{
+  position:absolute; top:7px; right:7px;
+  font-family:"IBM Plex Sans",sans-serif; font-size:11px;
+  border:1px solid var(--line-strong); border-radius:6px;
+  background:var(--surface); color:var(--ink);
+  padding:3px 8px; cursor:pointer; white-space:nowrap;
+}
+.btn-copiar:hover{border-color:var(--accent); color:var(--accent)}
+.restore .btn-copiar{position:static; margin-left:8px}
 .restore{
   display:flex; gap:9px; align-items:flex-start; font-size:13px;
   border:1px solid var(--warn); border-radius:8px; padding:11px 13px;
@@ -564,6 +576,7 @@ function pintarJornada(){
     el("q-sinal").hidden = false;
     el("q-sinal").innerHTML = "<b>O que esperar:</b> " + j.sinal;
     el("q-start").textContent = "docker start $(docker ps -aq -f name=" + j.servico_alvo + ")";
+      botoesDeCopiar();
     const av = el("g-aviso");
     av.hidden = !j.regra.aviso;
     av.innerHTML = j.regra.aviso ? "<b>Atenção:</b> " + j.regra.aviso : "";
@@ -806,7 +819,83 @@ el("exportar").addEventListener("click", exportar);
 el("exportar2").addEventListener("click", exportar);
 
 /* ---------- início ---------- */
+/*
+ * Copiar comando SEM depender da API moderna.
+ *
+ * navigator.clipboard so' existe em contexto seguro: https, ou localhost.
+ * Esta pagina e' servida por http num IP -- e' assim que o aluno acessa a
+ * EC2 -- entao la' ela NAO existe. O caminho antigo (execCommand) ainda
+ * funciona em http, desde que chamado DENTRO do gesto do usuario; por isso
+ * ele acontece de forma sincrona, e nao dentro de um then().
+ */
+function copiarTexto(texto){
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(texto).then(function(){return true;},
+                                                     function(){return false;});
+  }
+  try {
+    var ta = document.createElement("textarea");
+    ta.value = texto;
+    ta.setAttribute("readonly","");
+    ta.style.position = "fixed";
+    ta.style.top = "-1000px";
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    var ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return Promise.resolve(ok);
+  } catch (e) {
+    return Promise.resolve(false);
+  }
+}
+
+// O "$ " e' enfeite de terminal: copiado junto, o comando falha ao colar.
+function textoDoComando(alvo){
+  var clone = alvo.cloneNode(true);
+  var lixo = clone.querySelectorAll(".p, .btn-copiar");
+  for (var i = 0; i < lixo.length; i++) lixo[i].remove();
+  return clone.textContent.trim();
+}
+
+function copiarDe(alvo, botao){
+  copiarTexto(textoDoComando(alvo)).then(function(ok){
+    if (ok) {
+      botao.textContent = "copiado";
+    } else {
+      // Ultimo recurso: seleciona o comando para o aluno copiar a mao. Um
+      // botao que nao responde e' o pior dos desfechos.
+      var r = document.createRange();
+      r.selectNodeContents(alvo);
+      var s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(r);
+      botao.textContent = "selecionado";
+    }
+    setTimeout(function(){ botao.textContent = "copiar"; }, 1400);
+  });
+}
+
+// Rechamada apos cada preenchimento dinamico: o q-stop tem o innerHTML
+// reescrito quando a jornada muda, e isso apaga o botao junto.
+function botoesDeCopiar(){
+  var alvos = document.querySelectorAll(".cmd, #q-start");
+  for (var i = 0; i < alvos.length; i++) {
+    (function(alvo){
+      if (!alvo.textContent.trim()) return;           // bloco ainda vazio
+      if (alvo.querySelector(".btn-copiar")) return;  // ja' tem
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn-copiar";
+      b.textContent = "copiar";
+      b.addEventListener("click", function(){ copiarDe(alvo, b); });
+      alvo.appendChild(b);
+    })(alvos[i]);
+  }
+}
+
 carregar();
+botoesDeCopiar();
 
 // Servida pelo lab, o proprio endereco ja' e' o IP procurado.
 if (el("ip-lab") && !el("ip-lab").value && /^(\d{1,3}\.){3}\d{1,3}$|^localhost$/.test(location.hostname)){
