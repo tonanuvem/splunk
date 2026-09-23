@@ -197,6 +197,33 @@ saudável** com a jornada 100% quebrada. Peça a esses grupos que descrevam o qu
 faltou no indicador — a resposta é medir *volume esperado*, não só erro, ou
 medir do lado do cliente (RUM).
 
+### Quanto tempo o SLO leva para virar *Breached*
+
+**A Splunk não publica esse número.** A documentação descreve criar, ver e
+filtrar SLOs, mas não traz intervalo de avaliação nem latência de mudança de
+status. Meça uma vez no seu ambiente e use o valor real em aula:
+
+```bash
+date && docker stop $(docker ps -q -f name=<serviço>)
+```
+
+Depois acompanhe `Alerts › Service level objectives` e anote quando o status
+virar. As métricas de endpoint do APM agregam em janelas de cerca de 1 minuto,
+então a expectativa é de poucos minutos — mas isso é estimativa, não documentação.
+
+**O que costuma atrapalhar a medição é outra coisa.** Com alvo de 99,99% e
+janela de 30 dias, o orçamento é minúsculo: as ~120 falhas de uma rodada
+estouram na primeira agregação. Só que, pelo mesmo motivo, **o SLO não volta
+para `Normal`** — aquelas falhas continuam dentro dos 30 dias.
+
+Consequência prática: um SLO usado numa turma anterior **já chega violado**, e
+o grupo cronometra um status que nunca vai mudar. Antes de cada aula, apague os
+SLOs antigos; cada grupo cria o seu no passo 1.
+
+Se o seletor de *Compliance window* oferecer uma janela menor que 30 dias,
+prefira — o orçamento fica proporcional ao exercício e a recuperação também
+fica visível.
+
 ### O que o cliente vê: `SyntaxError: JSON.parse`
 
 Com o serviço fora, abrir a tela da jornada e submeter o formulário produz esta
